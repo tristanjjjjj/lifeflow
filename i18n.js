@@ -145,6 +145,7 @@
     "上传教务系统导出的 PDF，或直接粘贴课表文字": "Upload a PDF exported from your school system, or paste the text",
     "选择 PDF 文件": "Choose PDF file",
     "支持文字版 PDF（扫描件无法识别，请改用下方粘贴）。": "Text-based PDFs only; scanned pages need pasting below.",
+    "支持文字版 PDF。本地规则识别不出时，会自动调用已连接的 AI 解析；扫描件请改用下方粘贴。": "Text-based PDFs. If local rules fail, a connected AI model takes over; scanned pages need pasting below.",
     "或者粘贴课表文字": "Or paste timetable text",
     "解析": "Parse",
     "导入全部": "Import all",

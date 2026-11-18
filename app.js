@@ -1154,6 +1154,33 @@ function parsePdfLayout(items) {
   return out;
 }
 
+async function aiParseSchedule(rawText) {
+  const messages = [
+    { role: "system", content:
+      "你是课表解析器。下面是一份学校课表 PDF 的文本（按行提取，多列内容可能交错）。" +
+      "请根据「星期X」表头和「(N-M节)」信息还原课程，只输出 JSON：" +
+      '{"courses":[{"name":"课程名","day":1,"start":"08:00","end":"09:40","room":"教室","weeks":"周次"}]}。' +
+      "day 用 1=周一 … 7=周日。节次换算：第1节 08:00 起，每节 55 分钟顺延" +
+      "（第3节 09:50，第4节 10:45，第5节 14:00，第6节 14:55，第7节 15:50，第9节 19:00，第10节 19:55）。" +
+      "时间用 24 小时制 HH:MM。没有的信息留空字符串。不要输出任何解释。" },
+    { role: "user", content: String(rawText).slice(0, 6000) }
+  ];
+  const raw = await callDeepSeek(messages, { json: true, temperature: 0.1, maxTokens: 2500 });
+  const obj = JSON.parse(String(raw).replace(/```json|```/g, "").trim());
+  const list = Array.isArray(obj) ? obj : obj.courses;
+  if (!Array.isArray(list)) throw new Error("返回格式不正确");
+  return list
+    .map(c => ({
+      name: String(c.name || "").trim(),
+      day: Math.min(7, Math.max(1, Number(c.day) || 1)),
+      start: /^\d{1,2}:\d{2}$/.test(c.start || "") ? c.start.padStart(5, "0") : "",
+      end: /^\d{1,2}:\d{2}$/.test(c.end || "") ? c.end.padStart(5, "0") : "",
+      room: String(c.room || "").trim(),
+      weeks: String(c.weeks || "").trim()
+    }))
+    .filter(c => c.name && c.start && c.end);
+}
+
 let importRows = [];
 
 function renderImportPreview(rows) {
@@ -1212,10 +1239,15 @@ async function handleParse() {
       pages.forEach(items => { rows = rows.concat(parsePdfLayout(items)); });
       rows = mergeCourses(rows);
       if (!rows.length) {
-        // 版式解析失败，退回逐行文本解析
+        // 版式解析失败，先退回逐行文本解析
         text = (text ? text + "\n" : "") + pdfText;
         $("#scheduleText").value = text;
         rows = parseScheduleText(text);
+      }
+      if (!rows.length && aiKey()) {
+        // 仍然失败：调用模型兜底
+        toast("本地规则没识别出来，正在用 AI 解析…");
+        try { rows = await aiParseSchedule(pdfText); } catch (e) { /* 保持空 */ }
       }
       importRows = rows;
       renderImportPreview(importRows);
@@ -1229,6 +1261,10 @@ async function handleParse() {
 
   if (!text.trim()) { toast("请选择 PDF 或粘贴课表文字"); return; }
   importRows = parseScheduleText(text);
+  if (!importRows.length && aiKey()) {
+    toast("本地规则没识别出来，正在用 AI 解析…");
+    try { importRows = await aiParseSchedule(text); } catch (e) { /* 保持空 */ }
+  }
   renderImportPreview(importRows);
   toast(importRows.length ? `识别到 ${importRows.length} 门课程，请核对后导入` : "没有识别到课程");
 }
