@@ -699,6 +699,8 @@ function clearTimetable(force) {
   toast("课表已清空");
   return true;
 }
+$("#aiNoticeClose")?.addEventListener("click", () => $("#aiImportNotice")?.classList.add("hidden"));
+
 $("#clearTimetable")?.addEventListener("click", () => clearTimetable(false));
 
 $("#emptyImportBtn")?.addEventListener("click", () => $("#importCourseBtn")?.click());
@@ -1362,6 +1364,7 @@ async function aiParseSchedule(rawText) {
 }
 
 let importRows = [];
+let importSource = "local";   // local | ai
 
 function showImportError(msg) {
   const el = $("#importError");
@@ -1379,12 +1382,15 @@ function modelSupportsVision(m) {
 function renderImportPreview(rows) {
   const box = $("#importPreview");
   if (!box) return;
+  const aiTip = importSource === "ai" && rows.length
+    ? `<div class="preview-ai-tip">⚠ AI 识别结果，可能存在错误，请逐条核对后再导入</div>`
+    : "";
   if (!rows.length) {
     box.innerHTML = '<div class="import-empty">没有识别到课程。可以试试在下方手动粘贴，一行一门课，例如：<br>高等数学 周一 第1-2节 3-205</div>';
     $("#confirmImportBtn").disabled = true;
     return;
   }
-  box.innerHTML = rows.map((r, i) => `<div class="import-row" data-row="${i}">
+  box.innerHTML = aiTip + rows.map((r, i) => `<div class="import-row" data-row="${i}">
     <input data-f="name" value="${escapeHtml(r.name)}" placeholder="课程名"/>
     <select data-f="day">${[1,2,3,4,5,6,7].map(d => `<option value="${d}" ${d === r.day ? "selected" : ""}>周${"一二三四五六日"[d-1]}</option>`).join("")}</select>
     <input data-f="start" type="time" value="${r.start}"/>
@@ -1447,8 +1453,9 @@ async function handleParse() {
       toast("正在识别图片中的课表…");
       const rows = await parseImageFile(file);
       importRows = rows;
+      importSource = "ai";
       renderImportPreview(rows);
-      toast(rows.length ? `识别到 ${rows.length} 门课程，请核对后导入` : "没有识别到课程，换一张更清晰的图片试试");
+      toast(rows.length ? `AI 识别到 ${rows.length} 门课程，请务必核对` : "没有识别到课程，换一张更清晰的图片试试");
     } catch (err) {
       showImportError(err.message || "图片识别失败");
       console.error("[LifeFlow IMG]", err);
@@ -1478,10 +1485,12 @@ async function handleParse() {
             toast("检测到扫描件，正在用视觉模型识别…");
             const images = await renderPdfPageImages(file);
             rows = await aiParseScheduleFromImages(images);
+            importSource = "ai";
           }
         } else {
           toast("本地规则没识别出来，正在用 AI 解析…");
           rows = await aiParseSchedule(result.text);
+          importSource = "ai";
         }
       } else if (!rows.length && result.scanned) {
         showImportError("这是扫描件（没有文字层），本地规则无法识别。请先点右上角 AI 连接一个支持视觉的模型，或把课表文字粘贴到下方输入框。");
@@ -1504,10 +1513,11 @@ async function handleParse() {
   }
 
   if (!text.trim()) { toast("请选择 PDF 或粘贴课表文字"); return; }
+  importSource = "local";
   importRows = parseScheduleText(text);
   if (!importRows.length && aiKey()) {
     toast("本地规则没识别出来，正在用 AI 解析…");
-    try { importRows = await aiParseSchedule(text); } catch (e) { /* 保持空 */ }
+    try { importRows = await aiParseSchedule(text); importSource = "ai"; } catch (e) { /* 保持空 */ }
   }
   renderImportPreview(importRows);
   toast(importRows.length ? `识别到 ${importRows.length} 门课程，请核对后导入` : "没有识别到课程");
@@ -1524,6 +1534,7 @@ $("#aiParsePdfBtn")?.addEventListener("click", async () => {
     if (file && file.type && file.type.indexOf("image/") === 0) {
       const rows = await parseImageFile(file);
       importRows = rows;
+      importSource = "ai";
       renderImportPreview(rows);
       toast(rows.length ? `识别到 ${rows.length} 门课程` : "没有识别到课程");
       btn.disabled = false; btn.textContent = "✦ 用 AI 解析";
@@ -1539,6 +1550,7 @@ $("#aiParsePdfBtn")?.addEventListener("click", async () => {
     if (!text) { toast("请先选择 PDF 或粘贴课表文字"); }
     else {
       let rows;
+      importSource = "ai";
       if (scanned && file) {
         toast("扫描件：正在用视觉模型识别…");
         rows = await aiParseScheduleFromImages(await renderPdfPageImages(file));
@@ -1582,6 +1594,11 @@ $("#confirmImportBtn")?.addEventListener("click", () => {
   renderAll();
   $("#importDialog").close();
   toast(`已导入 ${added} 门课程${skipped ? `，跳过 ${skipped} 门（冲突或时间无效）` : ""}`);
+  const notice = $("#aiImportNotice");
+  if (notice && importSource === "ai" && added > 0) {
+    notice.classList.remove("hidden");
+    setTimeout(() => toast("AI 识别结果可能有误，请核对课表时间与教室"), 1200);
+  }
 });
 
 
@@ -1861,7 +1878,7 @@ document.querySelectorAll("dialog").forEach(dlg => {
   try { LEGACY_KEYS.forEach(k => localStorage.removeItem(k)); } catch (e) {}
 })();
 
-const APP_VERSION = "2026-11-18 #h";
+const APP_VERSION = "2026-11-18 #i";
 (function stampVersion() {
   const f = $("#appFooter");
   if (f && !f.dataset.stamped) {

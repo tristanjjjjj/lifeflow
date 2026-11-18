@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20261118h" />
+  <link rel="stylesheet" href="styles.css?v=20261118i" />
 </head>
 <body>
   <div class="app-shell">
@@ -102,7 +102,15 @@
         <div class="page-title-row"><div><div class="eyebrow">YOUR WEEK, AT A GLANCE</div><h1>我的课表</h1><p class="muted">拖动课程可调整时间，也可以从 PDF 或课表截图导入。</p></div><div class="page-title-actions"><button class="secondary-button" id="importCourseBtn">⇪ 导入课表</button><button class="primary-button" id="addCourseBtn">＋ 添加课程</button><button class="secondary-button danger-ghost" id="clearTimetable">🗑 清空课表</button></div></div>
         <div class="panel timetable-panel">
           <div class="panel-heading"><div><h2 id="weekTitle">第 12 周 · 秋季学期</h2><p>拖动课程可调整时间，切换周次只显示该周课程</p></div><div class="week-switch"><button id="prevWeek" title="上一周">‹</button><span id="weekLabel">第 12 周</span><button id="nextWeek" title="下一周">›</button></div></div>
-          <div class="empty-hint hidden" id="timetableEmpty">
+          <div class="ai-warning hidden" id="aiImportNotice">
+          <span class="aw-icon">⚠</span>
+          <div class="aw-body">
+            <strong>这份课表来自 AI 识别，可能有误</strong>
+            <p>AI 读取图片/扫描件时可能把星期、节次或教室认错。请逐门核对，点课程块即可修改；发现错误可直接删除后重新添加。</p>
+          </div>
+          <button type="button" class="aw-close" id="aiNoticeClose" title="我知道了">知道了</button>
+        </div>
+        <div class="empty-hint hidden" id="timetableEmpty">
           <div class="empty-icon">▦</div>
           <strong>课表还是空的</strong>
           <p>从教务系统 PDF 或课表截图一键识别，或手动添加你的第一门课。</p>
@@ -278,7 +286,7 @@
     </div>
   </form></dialog>
   <dialog id="courseDialog"><form method="dialog" id="courseForm" class="dialog-form"><div class="dialog-head"><div><h2 id="courseDialogTitle">添加课程</h2><p>填写课程基本信息</p></div><button type="button" class="close-dialog" data-close="self" title="关闭">×</button></div><label>课程名称</label><input class="field" id="courseName" required placeholder="例如：大学物理"/><div class="form-two"><div><label>星期</label><select class="field" id="courseDay"><option value="1">周一</option><option value="2">周二</option><option value="3">周三</option><option value="4">周四</option><option value="5">周五</option></select></div><div><label>地点</label><input class="field" id="courseRoom" placeholder="教学楼 2-101"/></div></div><div class="form-two"><div><label>开始时间</label><input class="field" type="time" id="courseStart" value="10:00"/></div><div><label>结束时间</label><input class="field" type="time" id="courseEnd" value="11:40"/></div></div><button class="primary-button full-button" value="default">保存课程</button></form></dialog>
-  <script src="i18n.js?v=20261118h"></script>
-  <script src="app.js?v=20261118h"></script>
+  <script src="i18n.js?v=20261118i"></script>
+  <script src="app.js?v=20261118i"></script>
 </body>
 </html>

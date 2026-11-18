@@ -517,3 +517,19 @@ dialog::backdrop{background:rgba(20,24,40,.45);backdrop-filter:blur(4px)}
 #importError{background:color-mix(in srgb,#e5484d 9%,var(--panel));color:var(--red);
   border:1px solid color-mix(in srgb,var(--red) 26%,var(--line-soft));
   border-radius:10px;padding:11px 13px;margin-top:12px;font-size:11px;line-height:1.65;display:none}
+
+/* ---------- AI 导入风险提示 ---------- */
+.ai-warning{display:flex;gap:12px;align-items:flex-start;padding:15px 17px;border-radius:14px;margin-bottom:16px;
+  background:color-mix(in srgb,#e8a33d 12%,var(--panel));
+  border:1px solid color-mix(in srgb,#e8a33d 38%,var(--line-soft))}
+.ai-warning .aw-icon{font-size:18px;line-height:1.2;color:#c8861f}
+.ai-warning .aw-body{flex:1}
+.ai-warning strong{display:block;font-size:12.5px;font-weight:500;color:#a76f13;margin-bottom:4px}
+.ai-warning p{margin:0;font-size:11px;line-height:1.7;color:var(--sub)}
+.ai-warning .aw-close{border:1px solid color-mix(in srgb,#e8a33d 45%,var(--line-soft));background:var(--panel);
+  color:#a76f13;border-radius:99px;padding:7px 14px;font-size:11px;white-space:nowrap;transition:.2s var(--ease)}
+.ai-warning .aw-close:hover{background:#fdf3e2}
+@media(max-width:720px){.ai-warning{flex-wrap:wrap}.aw-close{width:100%}}
+.preview-ai-tip{margin-bottom:10px;padding:10px 12px;border-radius:10px;font-size:10.5px;line-height:1.6;
+  background:color-mix(in srgb,#e8a33d 14%,var(--panel));color:#a76f13;
+  border:1px solid color-mix(in srgb,#e8a33d 38%,var(--line-soft))}
