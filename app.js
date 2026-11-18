@@ -1288,10 +1288,44 @@ async function renderPdfPageImages(file, maxPages = 3) {
 }
 
 /* 扫描件：用支持视觉的模型读取图片 */
+/* 把图片文件压缩成 dataURL（限制宽度，控制 token 消耗） */
+function readImageAsDataUrl(file, maxWidth = 1600) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      try {
+        const scale = Math.min(1, maxWidth / img.width);
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(img.width * scale));
+        canvas.height = Math.max(1, Math.round(img.height * scale));
+        canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+        URL.revokeObjectURL(url);
+        resolve(canvas.toDataURL("image/jpeg", 0.9));
+      } catch (e) { URL.revokeObjectURL(url); reject(e); }
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("图片读取失败，请换一张试试")); };
+    img.src = url;
+  });
+}
+
+/* 图片直接交给视觉模型 */
+async function parseImageFile(file) {
+  if (!aiKey()) throw new Error("识别图片需要先连接支持视觉的模型（右上角 AI），例如 qwen3-vl-plus、gpt-4o");
+  if (!modelSupportsVision(aiModel())) throw new Error(`当前模型「${aiModel()}」不支持图片，请在 AI 设置里改成视觉模型，例如 qwen3-vl-plus、gpt-4o`);
+  const dataUrl = await readImageAsDataUrl(file);
+  return aiParseScheduleFromImages([dataUrl]);
+}
+
 async function aiParseScheduleFromImages(images) {
   const content = [{
     type: "text",
     text: "这是一份学校课程表的图片（可能有多页，页与页之间是上下接续的表格）。" +
+      "注意：① 按表头「星期一…星期日」所在的列判断 day，不要凭猜测；" +
+      "② 同一个课程只输出一条，不要重复；跨多个节次的课程也只输出一条，start/end 覆盖它占用的节次；" +
+      "③ 表格线、页眉页脚、学号姓名等元数据忽略；" +
+      "④ 若格子里写了「(2-4节)」这类节次，按第1节 08:00 起、每节 55 分钟换算成时间" +
+      "（3节 09:50、4节 10:45、5节 14:00、6节 14:55、7节 15:50、9节 19:00、10节 19:55）。" +
       "请把课程还原成 JSON：{\"courses\":[{\"name\":\"课程名\",\"day\":1,\"start\":\"08:00\",\"end\":\"09:40\",\"room\":\"教室\",\"weeks\":\"周次\"}]}。" +
       "day 用 1=周一 … 7=周日；时间用 24 小时制 HH:MM；没有的信息留空字符串。只输出 JSON，不要解释。"
   }];
@@ -1391,6 +1425,23 @@ async function handleParse() {
   let text = $("#scheduleText").value;
   showImportError("");
 
+  // 图片：直接交给视觉模型
+  if (file && file.type && file.type.indexOf("image/") === 0) {
+    btn.disabled = true; btn.textContent = "识别中…";
+    try {
+      toast("正在识别图片中的课表…");
+      const rows = await parseImageFile(file);
+      importRows = rows;
+      renderImportPreview(rows);
+      toast(rows.length ? `识别到 ${rows.length} 门课程，请核对后导入` : "没有识别到课程，换一张更清晰的图片试试");
+    } catch (err) {
+      showImportError(err.message || "图片识别失败");
+      console.error("[LifeFlow IMG]", err);
+    }
+    btn.disabled = false; btn.textContent = "解析";
+    return;
+  }
+
   if (file) {
     btn.disabled = true; btn.textContent = "解析中…";
     try {
@@ -1450,6 +1501,14 @@ $("#aiParsePdfBtn")?.addEventListener("click", async () => {
 
   btn.disabled = true; btn.textContent = "AI 解析中…";
   try {
+    if (file && file.type && file.type.indexOf("image/") === 0) {
+      const rows = await parseImageFile(file);
+      importRows = rows;
+      renderImportPreview(rows);
+      toast(rows.length ? `识别到 ${rows.length} 门课程` : "没有识别到课程");
+      btn.disabled = false; btn.textContent = "✦ 用 AI 解析";
+      return;
+    }
     let scanned = false;
     if (file) {
       const result = await analyzePdfFile(file);
@@ -1782,7 +1841,7 @@ document.querySelectorAll("dialog").forEach(dlg => {
   try { LEGACY_KEYS.forEach(k => localStorage.removeItem(k)); } catch (e) {}
 })();
 
-const APP_VERSION = "2026-11-18 #e";
+const APP_VERSION = "2026-11-18 #f";
 (function stampVersion() {
   const f = $("#appFooter");
   if (f && !f.dataset.stamped) {
