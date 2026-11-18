@@ -1370,6 +1370,13 @@ $("#aiParsePdfBtn")?.addEventListener("click", async () => {
   btn.disabled = false; btn.textContent = "✦ 用 AI 解析";
 });
 
+$("#importCourseBtn")?.addEventListener("click", () => {
+  importRows = [];
+  $("#importPreview").innerHTML = "";
+  $("#confirmImportBtn").disabled = true;
+  $("#importDialog").showModal();
+});
+
 $("#parseScheduleBtn")?.addEventListener("click", handleParse);
 
 $("#confirmImportBtn")?.addEventListener("click", () => {
