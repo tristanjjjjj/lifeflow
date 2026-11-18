@@ -1233,6 +1233,19 @@ async function aiParseSchedule(rawText) {
 
 let importRows = [];
 
+function showImportError(msg) {
+  const el = $("#importError");
+  if (!el) return;
+  if (!msg) { el.style.display = "none"; el.textContent = ""; return; }
+  el.style.display = "block";
+  el.textContent = "⚠ " + msg;
+}
+
+/* 判断模型是否支持图片输入 */
+function modelSupportsVision(m) {
+  return /(vl|vision|gpt-4o|gpt-4\.1|o3|o4|glm-4v|doubao.*vision|qwen3-vl)/i.test(m || "");
+}
+
 function renderImportPreview(rows) {
   const box = $("#importPreview");
   if (!box) return;
@@ -1291,6 +1304,7 @@ async function handleParse() {
   const btn = $("#parseScheduleBtn");
   const file = $("#pdfFile").files[0];
   let text = $("#scheduleText").value;
+  showImportError("");
 
   if (file) {
     btn.disabled = true; btn.textContent = "解析中…";
@@ -1302,22 +1316,32 @@ async function handleParse() {
 
       if (!rows.length && aiKey()) {
         if (result.scanned) {
-          toast("检测到扫描件，正在用视觉模型识别…");
-          const images = await renderPdfPageImages(file);
-          rows = await aiParseScheduleFromImages(images);
+          if (!modelSupportsVision(aiModel())) {
+            showImportError(`这是扫描件（没有文字层），但当前模型「${aiModel()}」不支持图片。请在 AI 设置里把模型改成视觉模型，例如 qwen3-vl-plus、gpt-4o、doubao-1-5-vision-pro-32k-250115。`);
+          } else {
+            toast("检测到扫描件，正在用视觉模型识别…");
+            const images = await renderPdfPageImages(file);
+            rows = await aiParseScheduleFromImages(images);
+          }
         } else {
           toast("本地规则没识别出来，正在用 AI 解析…");
           rows = await aiParseSchedule(result.text);
         }
       } else if (!rows.length && result.scanned) {
-        toast("扫描件需要连接支持视觉的模型（如 qwen-vl-max / gpt-4o）");
+        showImportError("这是扫描件（没有文字层），本地规则无法识别。请先点右上角 AI 连接一个支持视觉的模型，或把课表文字粘贴到下方输入框。");
+      }
+      if (!rows.length && !$("#importError").textContent) {
+        showImportError("没有识别到课程。可以试试：① 点「✦ 用 AI 解析」；② 把课表文字粘贴到下方输入框再解析。");
       }
 
       importRows = rows;
       renderImportPreview(importRows);
       if (rows.length) toast(`识别到 ${rows.length} 门课程，请核对后导入`);
     } catch (err) {
-      toast(err.message || "PDF 解析失败");
+      const msg = err.message || "PDF 解析失败";
+      showImportError("解析失败：" + msg);
+      toast("解析失败，详情见弹窗红字");
+      console.error("[LifeFlow PDF]", err);
     }
     btn.disabled = false; btn.textContent = "解析";
     return;
