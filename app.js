@@ -267,26 +267,50 @@ function updateWeekLabel() {
 }
 
 /* ---------- 课表 ---------- */
+const TT_START = 8 * 60;          // 08:00
+const TT_END = 22 * 60;           // 22:00
+const TT_HOUR_H = 56;             // 每小时像素高度
+const TT_TOTAL_H = (TT_END - TT_START) / 60 * TT_HOUR_H;
+
+function ttTop(minutes) { return (minutes - TT_START) / 60 * TT_HOUR_H; }
+
 function renderTimetable() {
   const grid = $("#timetableGrid");
   if (!grid) return;
   updateWeekLabel();
-  const days = ["", "周一", "周二", "周三", "周四", "周五"];
-  const hours = ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00"];
-  let out = days.map(d => `<div class="tt-head">${d || "时间"}</div>`).join("");
-  hours.forEach(h => {
-    out += `<div class="tt-time">${h}</div>`;
-    for (let day = 1; day <= 5; day++) {
-      const c = courses.find(x => x.day === day && x.start.slice(0, 2) === h.slice(0, 2) && courseInWeek(x, currentWeek));
-      out += `<div class="tt-cell" data-day="${day}" data-hour="${h}">${c
-        ? `<div class="course-block ${c.tone}" draggable="true" data-course="${c.id}">
-             <strong>${escapeHtml(c.name)}</strong><br>${c.start}–${c.end}<br>${escapeHtml(c.room)}${c.weeks ? `<br><span class="course-weeks">${escapeHtml(c.weeks)}</span>` : ""}
-             <button class="course-del" data-delcourse="${c.id}" title="删除课程">×</button>
-           </div>`
-        : ""}</div>`;
-    }
-  });
-  grid.innerHTML = out;
+
+  const days = ["周一", "周二", "周三", "周四", "周五"];
+  const hours = [];
+  for (let m = TT_START; m < TT_END; m += 60) hours.push(m);
+
+  let head = '<div class="tt-corner">时间</div>' + days.map(d => `<div class="tt-head">${d}</div>`).join("");
+  head = `<div class="tt-head-row">${head}</div>`;
+
+  const hourCol = `<div class="tt-hours">${hours.map(m => `<div class="tt-hour"><span>${toHHMM(m)}</span></div>`).join("")}</div>`;
+
+  const cols = days.map((_, i) => {
+    const day = i + 1;
+    const blocks = courses
+      .filter(c => c.day === day && courseInWeek(c, currentWeek))
+      .map(c => {
+        const sm = toMin(c.start);
+        const em = toMin(c.end);
+        const top = Math.max(0, ttTop(sm));
+        const height = Math.max(34, (em - sm) / 60 * TT_HOUR_H - 3);
+        const short = height < 56;
+        return `<div class="course-block ${c.tone}" draggable="true" data-course="${c.id}"
+                  style="top:${top.toFixed(1)}px;height:${height.toFixed(1)}px">
+            <strong>${escapeHtml(c.name)}</strong>
+            <div class="cb-time">${c.start}–${c.end}</div>
+            ${short ? "" : `<div class="cb-room">${escapeHtml(c.room || "")}</div>`}
+            ${!short && c.weeks ? `<div class="course-weeks">${escapeHtml(c.weeks)}</div>` : ""}
+            <button class="course-del" data-delcourse="${c.id}" title="删除课程">×</button>
+          </div>`;
+      }).join("");
+    return `<div class="tt-day" data-day="${day}" style="height:${TT_TOTAL_H}px">${blocks}</div>`;
+  }).join("");
+
+  grid.innerHTML = head + `<div class="tt-body">${hourCol}${cols}</div>`;
 
   const emptyTip = $("#timetableEmpty");
   if (emptyTip) emptyTip.classList.toggle("hidden", courses.length > 0);
@@ -295,6 +319,7 @@ function renderTimetable() {
   $$(".course-block").forEach(block => {
     block.addEventListener("click", e => {
       if (e.target.closest("[data-delcourse]")) return;
+      e.stopPropagation();
       openCourseDialog(block.dataset.course);
     });
     block.addEventListener("dragstart", e => {
@@ -305,30 +330,42 @@ function renderTimetable() {
     block.addEventListener("dragend", () => block.classList.remove("dragging"));
   });
 
-  // 拖到其他格子 -> 调整时间
-  $$(".tt-cell").forEach(cell => {
-    cell.addEventListener("dragover", e => {
+  // 拖到某一天的任意位置 -> 按落点换算开始时间
+  $$(".tt-day").forEach(col => {
+    col.addEventListener("dragover", e => {
       if (!e.dataTransfer.types.includes("text/plain")) return;
       e.preventDefault();
-      cell.classList.add("drag-over");
+      col.classList.add("drag-over");
     });
-    cell.addEventListener("dragleave", () => cell.classList.remove("drag-over"));
-    cell.addEventListener("drop", e => {
+    col.addEventListener("dragleave", () => col.classList.remove("drag-over"));
+    col.addEventListener("drop", e => {
       e.preventDefault();
-      cell.classList.remove("drag-over");
+      col.classList.remove("drag-over");
       const id = e.dataTransfer.getData("text/plain");
       const c = courses.find(x => x.id === id);
-      if (!c || !cell.dataset.day) return;
+      if (!c) return;
       const dur = toMin(c.end) - toMin(c.start);
-      const startMin = toMin(cell.dataset.hour);
-      const next = { ...c, day: Number(cell.dataset.day), start: toHHMM(startMin), end: toHHMM(startMin + dur) };
-      if (toMin(next.end) > 22 * 60 + 30) { toast("超出当天时间范围"); return; }
+      const rect = col.getBoundingClientRect();
+      const y = Math.max(0, Math.min(rect.height, e.clientY - rect.top));
+      let startMin = TT_START + Math.round((y / TT_HOUR_H) * 60 / 5) * 5;
+      startMin = Math.max(TT_START, Math.min(TT_END - dur, startMin));
+      const next = { ...c, day: Number(col.dataset.day), start: toHHMM(startMin), end: toHHMM(startMin + dur) };
       const clash = courseConflict(next);
       if (clash) { toast(`与「${clash.name}」时间冲突`); return; }
       Object.assign(c, { day: next.day, start: next.start, end: next.end });
       persistCourses();
       renderAll();
       toast("课程时间已调整");
+    });
+
+    // 点空白处 -> 以该时间新建课程
+    col.addEventListener("click", e => {
+      if (e.target.closest(".course-block")) return;
+      const rect = col.getBoundingClientRect();
+      const y = Math.max(0, Math.min(rect.height, e.clientY - rect.top));
+      let startMin = TT_START + Math.round((y / TT_HOUR_H) * 60 / 5) * 5;
+      startMin = Math.max(TT_START, Math.min(TT_END - 100, startMin));
+      openCourseDialog(null, { day: Number(col.dataset.day), start: toHHMM(startMin), end: toHHMM(startMin + 100) });
     });
   });
 
@@ -669,16 +706,17 @@ $("#emptyAddBtn")?.addEventListener("click", () => openCourseDialog(null));
 
 /* 课表弹窗（新增 / 编辑） */
 let editingCourseId = null;
-function openCourseDialog(id) {
+function openCourseDialog(id, preset) {
   const dlg = $("#courseDialog");
   if (!dlg) return;
   editingCourseId = id || null;
   const c = id ? courses.find(x => x.id === id) : null;
+  const pre = preset || {};
   $("#courseDialogTitle").textContent = c ? "编辑课程" : "添加课程";
   $("#courseName").value = c ? c.name : "";
-  $("#courseDay").value = c ? c.day : 1;
-  $("#courseStart").value = c ? c.start : "10:00";
-  $("#courseEnd").value = c ? c.end : "11:40";
+  $("#courseDay").value = c ? c.day : (pre.day || 1);
+  $("#courseStart").value = c ? c.start : (pre.start || "10:00");
+  $("#courseEnd").value = c ? c.end : (pre.end || "11:40");
   $("#courseRoom").value = c ? c.room : "";
   dlg.showModal();
 }

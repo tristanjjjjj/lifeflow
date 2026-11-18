@@ -229,25 +229,36 @@ html[data-theme="dark"] .tag-blue{color:#9db8ff}html[data-theme="dark"] .tag-pur
 .week-switch button{border:1px solid var(--line-soft);background:var(--panel);border-radius:9px;width:28px;height:28px;color:var(--sub);
   transition:transform .2s var(--ease),border-color .2s}
 .week-switch button:hover{border-color:var(--accent);color:var(--accent);transform:scale(1.06)}
-.timetable{display:grid;grid-template-columns:55px repeat(5,minmax(100px,1fr));min-width:650px}
-.tt-head,.tt-time,.tt-cell{border-bottom:1px solid var(--line-soft);border-right:1px solid var(--line-soft);min-height:70px;padding:9px}
-.tt-head{text-align:center;color:var(--sub);font-size:10.5px;min-height:44px;font-weight:400}
-.tt-time{font-size:9.5px;color:var(--faint);text-align:center}
-.tt-cell{position:relative;transition:background .2s}
-.timetable-wrap{overflow-x:auto}
-.course-block{background:color-mix(in srgb,#7791ec 12%,var(--panel));border-left:3px solid #7791ec;border-radius:9px;
-  padding:9px 10px;font-size:9.5px;color:color-mix(in srgb,#5c75c7 88%,var(--ink));min-height:50px;
-  position:relative;transition:transform .25s var(--ease),box-shadow .25s}
-.course-block:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
+.timetable{min-width:660px}
+.timetable-wrap{overflow-x:auto;padding-bottom:4px}
+.tt-head-row{display:grid;grid-template-columns:58px repeat(5,minmax(108px,1fr))}
+.tt-corner,.tt-head{padding:10px 6px;font-size:10.5px;color:var(--sub);text-align:center;font-weight:400;
+  border-bottom:1px solid var(--line-soft)}
+.tt-corner{text-align:left;padding-left:8px;font-size:9.5px;color:var(--faint)}
+.tt-body{display:grid;grid-template-columns:58px repeat(5,minmax(108px,1fr));position:relative}
+.tt-hours{position:relative}
+.tt-hour{height:56px;border-bottom:1px solid var(--line-soft);position:relative}
+.tt-hour span{position:absolute;top:-6px;right:8px;font-size:9px;color:var(--faint);background:var(--panel);padding:0 2px}
+.tt-day{position:relative;border-left:1px solid var(--line-soft);
+  background-image:repeating-linear-gradient(to bottom,transparent 0,transparent 55px,var(--line-soft) 55px,var(--line-soft) 56px);
+  transition:background-color .2s;cursor:pointer}
+.tt-day.drag-over{background-color:var(--accent-soft);outline:2px dashed var(--accent);outline-offset:-3px}
+.course-block{position:absolute;left:3px;right:5px;overflow:hidden;padding:5px 8px;border-radius:9px;
+  border-left:3px solid #7791ec;background:color-mix(in srgb,#7791ec 14%,var(--panel));
+  color:color-mix(in srgb,#5c75c7 88%,var(--ink));font-size:9.5px;line-height:1.45;
+  transition:box-shadow .2s,transform .2s var(--ease),filter .2s}
+.course-block:hover{box-shadow:var(--shadow);filter:brightness(1.03);z-index:2}
+.course-block strong{display:block;font-size:10px;font-weight:500}
+.cb-time{font-size:8.5px;opacity:.85;margin-top:1px}
+.cb-room{font-size:8.5px;opacity:.75;margin-top:1px}
 .course-block[draggable="true"]{cursor:grab}
 .course-block.dragging{opacity:.45;cursor:grabbing}
-.course-block.pink{background:color-mix(in srgb,#e8a0b1 12%,var(--panel));border-color:#e8a0b1;color:color-mix(in srgb,#bd7489 88%,var(--ink))}
-.course-block.green{background:color-mix(in srgb,#70c3a0 12%,var(--panel));border-color:#70c3a0;color:color-mix(in srgb,#4a9c7b 88%,var(--ink))}
-.course-del{position:absolute;top:4px;right:5px;border:0;background:transparent;color:var(--faint);font-size:13px;line-height:1;padding:2px 3px;opacity:0;transition:.2s;border-radius:5px}
+.course-block.pink{background:color-mix(in srgb,#e8a0b1 14%,var(--panel));border-color:#e8a0b1;color:color-mix(in srgb,#bd7489 88%,var(--ink))}
+.course-block.green{background:color-mix(in srgb,#70c3a0 14%,var(--panel));border-color:#70c3a0;color:color-mix(in srgb,#4a9c7b 88%,var(--ink))}
+.course-del{position:absolute;top:3px;right:4px;border:0;background:transparent;color:var(--faint);font-size:12px;line-height:1;padding:2px 3px;opacity:0;transition:.2s;border-radius:5px}
 .course-block:hover .course-del{opacity:1}
 .course-del:hover{background:var(--red-soft);color:var(--red)}
-.course-weeks{font-size:8px;opacity:.75;display:inline-block;margin-top:2px}
-.tt-cell.drag-over{background:var(--accent-soft);outline:2px dashed var(--accent);outline-offset:-3px;border-radius:8px}
+.course-weeks{font-size:8px;opacity:.75;display:inline-block;margin-top:1px}
 
 /* ---------- 任务 ---------- */
 .capture-panel{padding:22px;margin-bottom:20px}
