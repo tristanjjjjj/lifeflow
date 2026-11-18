@@ -203,7 +203,7 @@
     <div class="dialog-head"><div><h2>导入课表</h2><p>上传教务系统导出的 PDF，或直接粘贴课表文字</p></div><button type="button" class="close-dialog" data-close="self" title="关闭">×</button></div>
     <label>选择 PDF 文件</label>
     <input class="field" type="file" id="pdfFile" accept="application/pdf,.pdf"/>
-    <div class="hint" id="pdfHint">支持文字版 PDF。本地规则识别不出时，会自动调用已连接的 AI 解析；扫描件请改用下方粘贴。</div>
+    <div class="hint" id="pdfHint">文字版 PDF 用本地规则解析；识别不出时自动调用 AI。<b>扫描件</b>会渲染成图片，交给支持视觉的模型（如 qwen-vl-max、gpt-4o）识别。</div>
     <label>或者粘贴课表文字</label>
     <textarea class="field" id="scheduleText" rows="5" placeholder="示例：&#10;高等数学 周一 第1-2节 3-205&#10;大学英语 周一 第5-6节 2-301"></textarea>
     <div class="preview-actions" style="margin-top:14px">

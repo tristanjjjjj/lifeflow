@@ -150,6 +150,7 @@
     "解析": "Parse",
     "导入全部": "Import all",
     "✦ 用 AI 解析": "✦ Parse with AI",
+    "文字版 PDF 用本地规则解析；识别不出时自动调用 AI。扫描件会渲染成图片，交给支持视觉的模型（如 qwen-vl-max、gpt-4o）识别。": "Text PDFs use local rules with AI fallback. Scanned pages are rendered as images for a vision-capable model (e.g. qwen-vl-max, gpt-4o).",
     "用已连接的 AI 解析 PDF": "Parse the PDF with your connected AI",
     "个人资料": "Profile",
     "仅保存在本机浏览器，用于个性化称呼": "Stored locally, used for greetings",

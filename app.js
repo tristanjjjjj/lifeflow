@@ -1154,6 +1154,54 @@ function parsePdfLayout(items) {
   return out;
 }
 
+function normalizeCourseList(obj) {
+  const list = Array.isArray(obj) ? obj : (obj && obj.courses);
+  if (!Array.isArray(list)) throw new Error("返回格式不正确");
+  return list
+    .map(c => ({
+      name: String(c.name || "").trim(),
+      day: Math.min(7, Math.max(1, Number(c.day) || 1)),
+      start: /^\d{1,2}:\d{2}$/.test(c.start || "") ? String(c.start).padStart(5, "0") : "",
+      end: /^\d{1,2}:\d{2}$/.test(c.end || "") ? String(c.end).padStart(5, "0") : "",
+      room: String(c.room || "").trim(),
+      weeks: String(c.weeks || "").trim()
+    }))
+    .filter(c => c.name && c.start && c.end);
+}
+
+/* 扫描件：把 PDF 页面渲染成图片 */
+async function renderPdfPageImages(file, maxPages = 3) {
+  await ensurePdfJs();
+  const buffer = await file.arrayBuffer();
+  const pdf = await window.pdfjsLib.getDocument({ data: new Uint8Array(buffer) }).promise;
+  const images = [];
+  const n = Math.min(pdf.numPages, maxPages);
+  for (let i = 1; i <= n; i++) {
+    const page = await pdf.getPage(i);
+    const viewport = page.getViewport({ scale: 2 });
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(viewport.width);
+    canvas.height = Math.round(viewport.height);
+    const ctx = canvas.getContext("2d");
+    await page.render({ canvasContext: ctx, viewport }).promise;
+    images.push(canvas.toDataURL("image/jpeg", 0.85));
+  }
+  return images;
+}
+
+/* 扫描件：用支持视觉的模型读取图片 */
+async function aiParseScheduleFromImages(images) {
+  const content = [{
+    type: "text",
+    text: "这是一份学校课程表的图片（可能有多页，页与页之间是上下接续的表格）。" +
+      "请把课程还原成 JSON：{\"courses\":[{\"name\":\"课程名\",\"day\":1,\"start\":\"08:00\",\"end\":\"09:40\",\"room\":\"教室\",\"weeks\":\"周次\"}]}。" +
+      "day 用 1=周一 … 7=周日；时间用 24 小时制 HH:MM；没有的信息留空字符串。只输出 JSON，不要解释。"
+  }];
+  images.forEach(url => content.push({ type: "image_url", image_url: { url } }));
+  const raw = await callDeepSeek([{ role: "user", content }], { json: true, temperature: 0.1, maxTokens: 3000 });
+  return normalizeCourseList(JSON.parse(String(raw).replace(/```json|```/g, "").trim()));
+}
+
 async function aiParseSchedule(rawText) {
   const messages = [
     { role: "system", content:
@@ -1167,18 +1215,7 @@ async function aiParseSchedule(rawText) {
   ];
   const raw = await callDeepSeek(messages, { json: true, temperature: 0.1, maxTokens: 2500 });
   const obj = JSON.parse(String(raw).replace(/```json|```/g, "").trim());
-  const list = Array.isArray(obj) ? obj : obj.courses;
-  if (!Array.isArray(list)) throw new Error("返回格式不正确");
-  return list
-    .map(c => ({
-      name: String(c.name || "").trim(),
-      day: Math.min(7, Math.max(1, Number(c.day) || 1)),
-      start: /^\d{1,2}:\d{2}$/.test(c.start || "") ? c.start.padStart(5, "0") : "",
-      end: /^\d{1,2}:\d{2}$/.test(c.end || "") ? c.end.padStart(5, "0") : "",
-      room: String(c.room || "").trim(),
-      weeks: String(c.weeks || "").trim()
-    }))
-    .filter(c => c.name && c.start && c.end);
+  return normalizeCourseList(obj);
 }
 
 let importRows = [];
@@ -1226,6 +1263,17 @@ function collectImportRows() {
   return rows;
 }
 
+async function analyzePdfFile(file) {
+  const { pages, text } = await extractPdfPages(file);
+  const scanned = text.replace(/\s/g, "").length < 50;
+  if (scanned) return { text, scanned: true, rows: [] };
+  let rows = [];
+  pages.forEach(items => { rows = rows.concat(parsePdfLayout(items)); });
+  rows = mergeCourses(rows);
+  if (!rows.length) rows = parseScheduleText(text);
+  return { text, scanned: false, rows };
+}
+
 async function handleParse() {
   const btn = $("#parseScheduleBtn");
   const file = $("#pdfFile").files[0];
@@ -1234,24 +1282,27 @@ async function handleParse() {
   if (file) {
     btn.disabled = true; btn.textContent = "解析中…";
     try {
-      const { pages, text: pdfText } = await extractPdfPages(file);
-      let rows = [];
-      pages.forEach(items => { rows = rows.concat(parsePdfLayout(items)); });
-      rows = mergeCourses(rows);
-      if (!rows.length) {
-        // 版式解析失败，先退回逐行文本解析
-        text = (text ? text + "\n" : "") + pdfText;
-        $("#scheduleText").value = text;
-        rows = parseScheduleText(text);
-      }
+      const result = await analyzePdfFile(file);
+      text = (text ? text + "\n" : "") + result.text;
+      $("#scheduleText").value = text;
+      let rows = result.rows;
+
       if (!rows.length && aiKey()) {
-        // 仍然失败：调用模型兜底
-        toast("本地规则没识别出来，正在用 AI 解析…");
-        try { rows = await aiParseSchedule(pdfText); } catch (e) { /* 保持空 */ }
+        if (result.scanned) {
+          toast("检测到扫描件，正在用视觉模型识别…");
+          const images = await renderPdfPageImages(file);
+          rows = await aiParseScheduleFromImages(images);
+        } else {
+          toast("本地规则没识别出来，正在用 AI 解析…");
+          rows = await aiParseSchedule(result.text);
+        }
+      } else if (!rows.length && result.scanned) {
+        toast("扫描件需要连接支持视觉的模型（如 qwen-vl-max / gpt-4o）");
       }
+
       importRows = rows;
       renderImportPreview(importRows);
-      toast(importRows.length ? `识别到 ${importRows.length} 门课程，请核对后导入` : "没有识别到课程，可改用下方粘贴");
+      if (rows.length) toast(`识别到 ${rows.length} 门课程，请核对后导入`);
     } catch (err) {
       toast(err.message || "PDF 解析失败");
     }
@@ -1269,13 +1320,6 @@ async function handleParse() {
   toast(importRows.length ? `识别到 ${importRows.length} 门课程，请核对后导入` : "没有识别到课程");
 }
 
-$("#importCourseBtn")?.addEventListener("click", () => {
-  importRows = [];
-  $("#importPreview").innerHTML = "";
-  $("#confirmImportBtn").disabled = true;
-  $("#importDialog").showModal();
-});
-
 $("#aiParsePdfBtn")?.addEventListener("click", async () => {
   if (!aiKey()) { toast("请先点右上角 AI 填入 API Key"); return; }
   const btn = $("#aiParsePdfBtn");
@@ -1284,14 +1328,22 @@ $("#aiParsePdfBtn")?.addEventListener("click", async () => {
 
   btn.disabled = true; btn.textContent = "AI 解析中…";
   try {
+    let scanned = false;
     if (file) {
-      const { text: pdfText } = await extractPdfPages(file);
-      text = (text ? text + "\n" : "") + pdfText;
+      const result = await analyzePdfFile(file);
+      scanned = result.scanned;
+      text = (text ? text + "\n" : "") + result.text;
       $("#scheduleText").value = text;
     }
     if (!text) { toast("请先选择 PDF 或粘贴课表文字"); }
     else {
-      const rows = await aiParseSchedule(text);
+      let rows;
+      if (scanned && file) {
+        toast("扫描件：正在用视觉模型识别…");
+        rows = await aiParseScheduleFromImages(await renderPdfPageImages(file));
+      } else {
+        rows = await aiParseSchedule(text);
+      }
       if (rows.length) {
         importRows = rows;
         renderImportPreview(importRows);
