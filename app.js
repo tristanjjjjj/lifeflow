@@ -1008,8 +1008,12 @@ function loadScript(src, timeout = 12000) {
   });
 }
 
-const PDF_CMAP_URL = "vendor/cmaps/";
-const PDF_STD_FONTS_URL = "vendor/standard_fonts/";
+function assetUrl(path) {
+  try { return new URL(path, location.href).href.replace(/\?.*$/, ""); }
+  catch (e) { return path; }
+}
+const PDF_CMAP_URL = assetUrl("vendor/cmaps/");
+const PDF_STD_FONTS_URL = assetUrl("vendor/standard_fonts/");
 
 function pdfDocOptions(buffer) {
   return {
@@ -1030,16 +1034,23 @@ async function ensurePdfJs() {
     } catch (e) { /* 试下一个源 */ }
   }
   if (!window.pdfjsLib) throw new Error("PDF 解析库加载失败，请检查网络或改用粘贴文字");
-  window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDF_WORKER_SOURCES[0];
+  window.pdfjsLib.GlobalWorkerOptions.workerSrc = assetUrl(PDF_WORKER_SOURCES[0]);
 }
 
 async function extractPdfPages(file) {
   await ensurePdfJs();
   const buffer = await file.arrayBuffer();
-  const pdf = await Promise.race([
+  const openDoc = () => Promise.race([
     window.pdfjsLib.getDocument(pdfDocOptions(buffer)).promise,
-    new Promise((_, reject) => setTimeout(() => reject(new Error("PDF 读取超时，文件可能过大或已损坏")), 25000))
+    new Promise((_, reject) => setTimeout(() => reject(new Error("PDF 读取超时（字体映射表加载太慢或网络不稳定），请重试一次")), 45000))
   ]);
+  let pdf;
+  try {
+    pdf = await openDoc();
+  } catch (e1) {
+    await new Promise(r => setTimeout(r, 800));
+    pdf = await openDoc();   // 重试一次
+  }
   const pages = [];
   const texts = [];
   for (let i = 1; i <= pdf.numPages; i++) {
@@ -1733,7 +1744,7 @@ document.querySelectorAll("dialog").forEach(dlg => {
   try { LEGACY_KEYS.forEach(k => localStorage.removeItem(k)); } catch (e) {}
 })();
 
-const APP_VERSION = "2026-11-18 #c";
+const APP_VERSION = "2026-11-18 #d";
 (function stampVersion() {
   const f = $("#appFooter");
   if (f && !f.dataset.stamped) {
