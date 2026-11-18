@@ -1782,7 +1782,7 @@ document.querySelectorAll("dialog").forEach(dlg => {
   try { LEGACY_KEYS.forEach(k => localStorage.removeItem(k)); } catch (e) {}
 })();
 
-const APP_VERSION = "2026-11-18 #d";
+const APP_VERSION = "2026-11-18 #e";
 (function stampVersion() {
   const f = $("#appFooter");
   if (f && !f.dataset.stamped) {
