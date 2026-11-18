@@ -1434,15 +1434,33 @@ $("#aiClearBtn")?.addEventListener("click", () => {
   updateAiUi();
   toast("已清除 Key");
 });
+function setAiStatus(text, kind) {
+  const st = $("#aiStatus");
+  if (!st) return;
+  st.className = "ai-status" + (kind ? " " + kind : "");
+  st.textContent = text;
+}
+
 $("#aiTestBtn")?.addEventListener("click", async () => {
   const btn = $("#aiTestBtn");
   btn.disabled = true; btn.textContent = "测试中…";
+  // 先把当前输入写进去，避免测试的是“已保存的旧配置”
+  try {
+    localStorage.setItem(AI_BASE_STORE, ($("#aiBaseInput").value.trim() || AI_DEFAULT_BASE).replace(/\/+$/, ""));
+    localStorage.setItem(AI_MODEL_STORE, $("#aiModelInput").value.trim() || AI_DEFAULT_MODEL);
+    const k = ($("#aiKeyInput").value || "").trim();
+    if (k) localStorage.setItem(AI_KEY_STORE, k);
+  } catch (e) {}
+  setAiStatus(`测试中… ${aiModel()} @ ${aiBase().replace(/^https?:\/\//, "")}`, "");
   try {
     const reply = await callDeepSeek([{ role: "user", content: "只回复两个字：可用" }], { maxTokens: 20, temperature: 0 });
-    toast("连接成功：" + reply.slice(0, 20));
-    updateAiUi();
+    setAiStatus(`✓ 连接成功 · ${aiModel()} · 返回「${reply.slice(0, 30)}」`, "ok");
+    toast("连接成功");
   } catch (e) {
-    toast("连接失败：" + (e.message || "未知错误"));
+    const msg = e.message || "未知错误";
+    setAiStatus(`✗ 失败：${msg}`, "err");
+    toast("连接失败，详情看弹窗里的红字");
+    console.error("[LifeFlow AI]", e, { base: aiBase(), model: aiModel() });
   }
   btn.disabled = false; btn.textContent = "测试连接";
 });
