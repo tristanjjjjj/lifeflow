@@ -1733,6 +1733,16 @@ document.querySelectorAll("dialog").forEach(dlg => {
   try { LEGACY_KEYS.forEach(k => localStorage.removeItem(k)); } catch (e) {}
 })();
 
+const APP_VERSION = "2026-11-18 #c";
+(function stampVersion() {
+  const f = $("#appFooter");
+  if (f && !f.dataset.stamped) {
+    f.dataset.stamped = "1";
+    f.insertAdjacentHTML("afterbegin", `<span class="app-version" style="float:none;display:inline-block;margin-right:10px;opacity:.55">v${APP_VERSION}</span>`);
+  }
+  console.log("[LifeFlow] version", APP_VERSION, "· CMap:", typeof PDF_CMAP_URL !== "undefined" ? PDF_CMAP_URL : "n/a");
+})();
+
 (function init() {
   const now = new Date();
   const today = $("#todayText");
