@@ -1276,6 +1276,36 @@ $("#importCourseBtn")?.addEventListener("click", () => {
   $("#importDialog").showModal();
 });
 
+$("#aiParsePdfBtn")?.addEventListener("click", async () => {
+  if (!aiKey()) { toast("请先点右上角 AI 填入 API Key"); return; }
+  const btn = $("#aiParsePdfBtn");
+  const file = $("#pdfFile").files[0];
+  let text = $("#scheduleText").value.trim();
+
+  btn.disabled = true; btn.textContent = "AI 解析中…";
+  try {
+    if (file) {
+      const { text: pdfText } = await extractPdfPages(file);
+      text = (text ? text + "\n" : "") + pdfText;
+      $("#scheduleText").value = text;
+    }
+    if (!text) { toast("请先选择 PDF 或粘贴课表文字"); }
+    else {
+      const rows = await aiParseSchedule(text);
+      if (rows.length) {
+        importRows = rows;
+        renderImportPreview(importRows);
+        toast(`AI 识别到 ${rows.length} 门课程，请核对后导入`);
+      } else {
+        toast("AI 没有识别出课程，试试粘贴更完整的文字");
+      }
+    }
+  } catch (e) {
+    toast("AI 解析失败：" + (e.message || "未知错误"));
+  }
+  btn.disabled = false; btn.textContent = "✦ 用 AI 解析";
+});
+
 $("#parseScheduleBtn")?.addEventListener("click", handleParse);
 
 $("#confirmImportBtn")?.addEventListener("click", () => {
