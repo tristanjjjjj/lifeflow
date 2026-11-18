@@ -1427,6 +1427,10 @@ async function handleParse() {
 
   // 图片：直接交给视觉模型
   if (file && file.type && file.type.indexOf("image/") === 0) {
+    if ($("#localOnly") && $("#localOnly").checked) {
+      showImportError("图片必须由视觉模型识别，本地规则无法处理。请取消勾选「只用本地解析」，或改上传文字版 PDF。");
+      return;
+    }
     btn.disabled = true; btn.textContent = "识别中…";
     try {
       toast("正在识别图片中的课表…");
@@ -1450,7 +1454,12 @@ async function handleParse() {
       $("#scheduleText").value = text;
       let rows = result.rows;
 
-      if (!rows.length && aiKey()) {
+      const localOnly = $("#localOnly") && $("#localOnly").checked;
+      if (!rows.length && localOnly) {
+        showImportError(result.scanned
+          ? "这是扫描件（没有文字层），本地规则无法识别。取消勾选「只用本地解析」即可调用 AI，或把课表文字粘贴到下方。"
+          : "本地规则没有识别出课程。可以取消勾选「只用本地解析」让 AI 再试，或粘贴课表文字。");
+      } else if (!rows.length && aiKey()) {
         if (result.scanned) {
           if (!modelSupportsVision(aiModel())) {
             showImportError(`这是扫描件（没有文字层），但当前模型「${aiModel()}」不支持图片。请在 AI 设置里把模型改成视觉模型，例如 qwen3-vl-plus、gpt-4o、doubao-1-5-vision-pro-32k-250115。`);
@@ -1841,7 +1850,7 @@ document.querySelectorAll("dialog").forEach(dlg => {
   try { LEGACY_KEYS.forEach(k => localStorage.removeItem(k)); } catch (e) {}
 })();
 
-const APP_VERSION = "2026-11-18 #f";
+const APP_VERSION = "2026-11-18 #g";
 (function stampVersion() {
   const f = $("#appFooter");
   if (f && !f.dataset.stamped) {

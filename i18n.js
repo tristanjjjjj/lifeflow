@@ -151,6 +151,7 @@
     "支持文字版 PDF。本地规则识别不出时，会自动调用已连接的 AI 解析；扫描件请改用下方粘贴。": "Text-based PDFs. If local rules fail, a connected AI model takes over; scanned pages need pasting below.",
     "或者粘贴课表文字": "Or paste timetable text",
     "解析": "Parse",
+    "只用本地解析，不调用 AI（文字版 PDF 100% 准确且免费）": "Local parsing only — no AI calls (100% accurate and free for text PDFs)",
     "导入全部": "Import all",
     "✦ 用 AI 解析": "✦ Parse with AI",
     "文字版 PDF 用本地规则解析；识别不出时自动调用 AI。扫描件会渲染成图片，交给支持视觉的模型（如 qwen-vl-max、gpt-4o）识别。": "Text PDFs use local rules with AI fallback. Scanned pages are rendered as images for a vision-capable model (e.g. qwen-vl-max, gpt-4o).",
