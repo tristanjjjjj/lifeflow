@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20261118i" />
+  <link rel="stylesheet" href="styles.css?v=20261118j" />
 </head>
 <body>
   <div class="app-shell">
@@ -223,6 +223,25 @@
     <div id="importError"></div>
     <div id="importPreview" class="import-preview"></div>
   </form></dialog>
+  <dialog id="verifyDialog"><form method="dialog" class="dialog-form">
+    <div class="dialog-head">
+      <div><h2>请核对课表</h2><p>这份课表由 AI 识别，可能有误</p></div>
+      <button type="button" class="close-dialog" data-close="self" title="关闭">×</button>
+    </div>
+    <div class="verify-body">
+      <div class="verify-warn"><span>⚠</span><div><strong>AI 识别可能出现以下问题</strong><p>请逐门对照原始课表检查，确认无误后再使用。</p></div></div>
+      <ul class="verify-list">
+        <li><b>星期</b>：课程是否被放到了错误的日期</li>
+        <li><b>节次时间</b>：开始/结束时间是否与实际上课时间一致</li>
+        <li><b>教室与课程名</b>：是否有错字、漏字或串行</li>
+      </ul>
+      <p class="verify-tip">检查方式：在「我的课表」点击任意课程块即可修改；确认错误较多时，建议删除后重新添加，或改用文字版 PDF 导入。</p>
+    </div>
+    <div class="preview-actions">
+      <button type="button" class="secondary-button" id="verifyGoEdit">去课表核对</button>
+      <button type="button" class="primary-button" id="verifyOk">我已核对</button>
+    </div>
+  </form></dialog>
   <dialog id="profileDialog"><form method="dialog" class="dialog-form" id="profileForm">
     <div class="dialog-head"><div><h2>个人资料</h2><p>仅保存在本机浏览器，用于个性化称呼</p></div><button type="button" class="close-dialog" data-close="self" title="关闭">×</button></div>
     <label>你的名字 / 昵称</label>
@@ -286,7 +305,7 @@
     </div>
   </form></dialog>
   <dialog id="courseDialog"><form method="dialog" id="courseForm" class="dialog-form"><div class="dialog-head"><div><h2 id="courseDialogTitle">添加课程</h2><p>填写课程基本信息</p></div><button type="button" class="close-dialog" data-close="self" title="关闭">×</button></div><label>课程名称</label><input class="field" id="courseName" required placeholder="例如：大学物理"/><div class="form-two"><div><label>星期</label><select class="field" id="courseDay"><option value="1">周一</option><option value="2">周二</option><option value="3">周三</option><option value="4">周四</option><option value="5">周五</option></select></div><div><label>地点</label><input class="field" id="courseRoom" placeholder="教学楼 2-101"/></div></div><div class="form-two"><div><label>开始时间</label><input class="field" type="time" id="courseStart" value="10:00"/></div><div><label>结束时间</label><input class="field" type="time" id="courseEnd" value="11:40"/></div></div><button class="primary-button full-button" value="default">保存课程</button></form></dialog>
-  <script src="i18n.js?v=20261118i"></script>
-  <script src="app.js?v=20261118i"></script>
+  <script src="i18n.js?v=20261118j"></script>
+  <script src="app.js?v=20261118j"></script>
 </body>
 </html>

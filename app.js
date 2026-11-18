@@ -700,6 +700,8 @@ function clearTimetable(force) {
   return true;
 }
 $("#aiNoticeClose")?.addEventListener("click", () => $("#aiImportNotice")?.classList.add("hidden"));
+$("#verifyOk")?.addEventListener("click", () => $("#verifyDialog")?.close());
+$("#verifyGoEdit")?.addEventListener("click", () => { $("#verifyDialog")?.close(); go("timetable"); });
 
 $("#clearTimetable")?.addEventListener("click", () => clearTimetable(false));
 
@@ -1597,7 +1599,8 @@ $("#confirmImportBtn")?.addEventListener("click", () => {
   const notice = $("#aiImportNotice");
   if (notice && importSource === "ai" && added > 0) {
     notice.classList.remove("hidden");
-    setTimeout(() => toast("AI 识别结果可能有误，请核对课表时间与教室"), 1200);
+    const vd = $("#verifyDialog");
+    if (vd) vd.showModal();
   }
 });
 
@@ -1878,7 +1881,7 @@ document.querySelectorAll("dialog").forEach(dlg => {
   try { LEGACY_KEYS.forEach(k => localStorage.removeItem(k)); } catch (e) {}
 })();
 
-const APP_VERSION = "2026-11-18 #i";
+const APP_VERSION = "2026-11-18 #j";
 (function stampVersion() {
   const f = $("#appFooter");
   if (f && !f.dataset.stamped) {
