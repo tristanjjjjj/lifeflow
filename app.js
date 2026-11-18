@@ -690,6 +690,17 @@ $("#parseTaskBtn")?.addEventListener("click", async () => {
   };
 });
 
+function clearTimetable(force) {
+  if (!courses.length) { toast("课表已经是空的了"); return false; }
+  if (!force && !confirm(`确定清空课表？将删除全部 ${courses.length} 门课程（任务和计划不受影响）。`)) return false;
+  courses = [];
+  persistCourses();
+  renderAll();
+  toast("课表已清空");
+  return true;
+}
+$("#clearTimetable")?.addEventListener("click", () => clearTimetable(false));
+
 $("#emptyImportBtn")?.addEventListener("click", () => $("#importCourseBtn")?.click());
 $("#emptyAddBtn")?.addEventListener("click", () => openCourseDialog(null));
 
@@ -1850,7 +1861,7 @@ document.querySelectorAll("dialog").forEach(dlg => {
   try { LEGACY_KEYS.forEach(k => localStorage.removeItem(k)); } catch (e) {}
 })();
 
-const APP_VERSION = "2026-11-18 #g";
+const APP_VERSION = "2026-11-18 #h";
 (function stampVersion() {
   const f = $("#appFooter");
   if (f && !f.dataset.stamped) {

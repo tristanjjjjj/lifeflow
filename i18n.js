@@ -51,6 +51,7 @@
     "拖动课程可调整时间，也可以从教务系统 PDF 导入。": "Drag a class to move it, or import your timetable from a PDF.",
     "⇪ 导入课表": "⇪ Import timetable",
     "＋ 添加课程": "＋ Add class",
+    "🗑 清空课表": "🗑 Clear timetable",
     "第 12 周 · 秋季学期": "Week 12 · Autumn term",
     "拖动课程可调整时间，切换周次只显示该周课程": "Drag to move a class; switch weeks to filter.",
     "第 12 周": "Week 12",
