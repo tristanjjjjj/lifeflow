@@ -224,6 +224,15 @@
   </form></dialog>
   <dialog id="aiDialog"><form method="dialog" class="dialog-form" id="aiForm">
     <div class="dialog-head"><div><h2>AI 连接设置</h2><p>填入 DeepSeek API Key 后，任务识别与小结由模型生成</p></div><button type="button" class="close-dialog" data-close="self" title="关闭">×</button></div>
+    <label>服务商</label>
+    <select class="field" id="aiProviderSelect">
+      <option value="deepseek">DeepSeek</option>
+      <option value="dashscope">通义千问（阿里百炼）</option>
+      <option value="kimi">Kimi（月之暗面）</option>
+      <option value="openai">OpenAI</option>
+      <option value="ollama">本机 Ollama</option>
+      <option value="custom">自定义</option>
+    </select>
     <label>API 地址（OpenAI 兼容）</label>
     <input class="field" id="aiBaseInput" placeholder="https://api.deepseek.com/v1" autocomplete="off"/>
     <div class="hint">默认 DeepSeek。也可以填 Kimi、通义、OpenAI 或本机 Ollama 的兼容地址。</div>

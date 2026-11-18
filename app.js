@@ -754,6 +754,18 @@ const AI_MODEL_STORE = "lifeflow_ai_model";
 const AI_BASE_STORE = "lifeflow_ai_base";
 const AI_DEFAULT_BASE = "https://api.deepseek.com/v1";
 const AI_DEFAULT_MODEL = "deepseek-flash";
+const AI_PROVIDERS = {
+  deepseek:  { base: "https://api.deepseek.com/v1", model: "deepseek-flash" },
+  dashscope: { base: "https://dashscope.aliyuncs.com/compatible-mode/v1", model: "qwen-plus" },
+  kimi:      { base: "https://api.moonshot.cn/v1", model: "kimi-k2" },
+  openai:    { base: "https://api.openai.com/v1", model: "gpt-4o-mini" },
+  ollama:    { base: "http://localhost:11434/v1", model: "llama3" },
+  custom:    null
+};
+function providerOfBase(base) {
+  const b = String(base || "").replace(/\/+$/, "");
+  return Object.keys(AI_PROVIDERS).find(k => AI_PROVIDERS[k] && AI_PROVIDERS[k].base.replace(/\/+$/, "") === b) || "custom";
+}
 
 function aiKey() { try { return localStorage.getItem(AI_KEY_STORE) || ""; } catch (e) { return ""; } }
 function aiModel() { try { return localStorage.getItem(AI_MODEL_STORE) || AI_DEFAULT_MODEL; } catch (e) { return AI_DEFAULT_MODEL; } }
@@ -1379,12 +1391,20 @@ $("#confirmImportBtn")?.addEventListener("click", () => {
 
 /* AI 设置交互 */
 $("#aiSettingsBtn")?.addEventListener("click", () => {
+  $("#aiProviderSelect").value = providerOfBase(aiBase());
   $("#aiBaseInput").value = aiBase();
   $("#aiKeyInput").value = aiKey();
   $("#aiModelInput").value = aiModel();
   updateAiUi();
   $("#aiDialog").showModal();
 });
+$("#aiProviderSelect")?.addEventListener("change", e => {
+  const preset = AI_PROVIDERS[e.target.value];
+  if (!preset) return;                       // 自定义：保留用户输入
+  $("#aiBaseInput").value = preset.base;
+  $("#aiModelInput").value = preset.model;
+});
+
 $("#aiSaveBtn")?.addEventListener("click", () => {
   const base = $("#aiBaseInput").value.trim() || AI_DEFAULT_BASE;
   const key = $("#aiKeyInput").value.trim();
