@@ -494,3 +494,15 @@ dialog::backdrop{background:rgba(20,24,40,.45);backdrop-filter:blur(4px)}
 .praise-body p{margin:0;font-size:11.5px;color:var(--sub);line-height:1.65}
 .praise.ai .praise-body strong:after{content:" · AI";font-size:9px;color:var(--accent);letter-spacing:.06em;margin-left:5px}
 @media(max-width:720px){.praise{bottom:18px}}
+
+/* ---------- 弹窗内提示条（避免被模态遮罩盖住） ---------- */
+.dlg-toast{position:sticky;top:0;z-index:3;margin:-8px 0 14px;padding:11px 14px;border-radius:11px;
+  background:color-mix(in srgb,#e5484d 12%,var(--panel));color:var(--red);
+  border:1px solid color-mix(in srgb,var(--red) 30%,var(--line-soft));
+  font-size:11.5px;line-height:1.6;opacity:0;transform:translateY(-6px);
+  transition:opacity .22s var(--ease),transform .22s var(--ease);pointer-events:none}
+.dlg-toast.show{opacity:1;transform:none}
+/* 导入弹窗的错误提示更醒目 */
+#importError{background:color-mix(in srgb,#e5484d 9%,var(--panel));color:var(--red);
+  border:1px solid color-mix(in srgb,var(--red) 26%,var(--line-soft));
+  border-radius:10px;padding:11px 13px;margin-top:12px;font-size:11px;line-height:1.65;display:none}

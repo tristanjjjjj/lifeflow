@@ -39,7 +39,24 @@ function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
 function toast(msg) {
+  // 有模态弹窗打开时，提示显示在弹窗内部（否则会被 dialog 的模糊遮罩盖住）
+  const openDlg = [...document.querySelectorAll("dialog[open]")].pop();
+  if (openDlg) {
+    let bar = openDlg.querySelector(".dlg-toast");
+    if (!bar) {
+      bar = document.createElement("div");
+      bar.className = "dlg-toast";
+      const anchor = openDlg.querySelector(".dialog-form") || openDlg;
+      anchor.insertBefore(bar, anchor.firstChild);
+    }
+    bar.textContent = msg;
+    bar.classList.add("show");
+    clearTimeout(bar._t);
+    bar._t = setTimeout(() => bar.classList.remove("show"), 2600);
+    return;
+  }
   const el = $("#toast");
+  if (!el) return;
   el.textContent = msg;
   el.classList.add("show");
   clearTimeout(el._t);
