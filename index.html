@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LifeFlow — AI 校园生活规划助手</title>
+  <script>
+    (function(){try{var t=localStorage.getItem("lifeflow_theme")||"auto";if(t!=="auto")document.documentElement.setAttribute("data-theme",t);}catch(e){}})();
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">L</div>
+        <div><div class="brand-name">LifeFlow</div><div class="brand-sub">YOUR CAMPUS, IN FLOW</div></div>
+      </div>
+      <div class="workspace-label">WORKSPACE</div>
+      <nav class="nav-list">
+        <button class="nav-item active" data-page="dashboard"><span class="nav-icon">⌂</span>总览 <span class="nav-dot"></span></button>
+        <button class="nav-item" data-page="timetable"><span class="nav-icon">▦</span>我的课表</button>
+        <button class="nav-item" data-page="tasks"><span class="nav-icon">☷</span>任务中心 <span class="nav-count" id="navTaskCount">3</span></button>
+        <button class="nav-item" data-page="planner"><span class="nav-icon">✧</span>AI 智能规划</button>
+        <button class="nav-item" data-page="insights"><span class="nav-icon">▥</span>数据统计</button>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="tip-card">
+          <div class="tip-spark">✦</div>
+          <div class="tip-title">Make today count.</div>
+          <p>把复杂留给 LifeFlow，把时间还给自己。</p>
+        </div>
+        <div class="profile" id="profileBtn" title="编辑个人资料">
+          <div class="avatar">D</div>
+          <div class="profile-text"><strong id="profileName">dear student</strong><span>Student workspace</span></div>
+          <span class="more">···</span>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <div class="breadcrumb">Workspace <span>/</span> <strong id="crumb">总览</strong></div>
+        <div class="top-actions">
+          <div class="today-chip"><span class="status-dot"></span><span id="todayText">今天</span></div>
+          <button class="icon-button lang-toggle" id="langToggle" title="Language">中</button>
+          <button class="icon-button" id="helpBtn" title="新手指引">?</button>
+          <button class="icon-button theme-toggle" id="themeToggle" title="切换深浅色（自动/浅色/深色）">◐</button>
+          <button class="icon-button ai-connect" id="aiSettingsBtn" title="AI 连接设置"><span class="ai-dot" id="aiDot"></span>AI</button>
+          <button class="avatar small-avatar" id="topAvatarBtn" title="个人资料">D</button>
+        </div>
+      </header>
+
+      <section class="page active" id="page-dashboard">
+        <div class="welcome-row">
+          <div><div class="eyebrow">WEDNESDAY, YOUR DAY STARTS HERE</div><h1>把今天，安排得刚刚好。<span class="wave">✦</span></h1><p class="muted">早上好，<span id="greetName">dear student</span>。先看看今天有什么值得完成。</p></div>
+          <button class="primary-button" data-goto="planner"><span>✧</span> 生成今日计划</button>
+        </div>
+        <div class="panel setup-panel hidden" id="setupPanel">
+          <div class="panel-heading"><div><h2>开始使用（3 步）</h2><p>还没有数据，按顺序完成下面三步</p></div><span class="tag tag-blue">新用户</span></div>
+          <div class="setup-steps">
+            <button class="setup-step" id="setupStep1"><span class="setup-num">1</span><div><strong>导入或添加课表</strong><small>有教务系统 PDF 可直接导入</small></div><span class="setup-go">›</span></button>
+            <button class="setup-step" id="setupStep2"><span class="setup-num">2</span><div><strong>添加第一个任务</strong><small>一句话描述，AI 帮你拆解</small></div><span class="setup-go">›</span></button>
+            <button class="setup-step" id="setupStep3"><span class="setup-num">3</span><div><strong>生成今日计划</strong><small>自动避开上课时间</small></div><span class="setup-go">›</span></button>
+          </div>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-card"><div class="stat-top"><span>今日待办</span><span class="stat-icon lavender">☷</span></div><div class="stat-number" id="statTasks">3</div><div class="stat-foot"><span class="green-text">↗ 2 项高优先级</span><span>待完成任务</span></div></div>
+          <div class="stat-card"><div class="stat-top"><span>今日课程</span><span class="stat-icon blue">▦</span></div><div class="stat-number"><span id="statCourses">2</span><span class="stat-unit"> 节</span></div><div class="stat-foot"><span>下一节 14:00</span><span>距离上课 42 分钟</span></div></div>
+          <div class="stat-card"><div class="stat-top"><span>可用时间</span><span class="stat-icon mint">◷</span></div><div class="stat-number"><span id="statFree">4.5</span><span class="stat-unit"> h</span></div><div class="stat-foot"><span class="green-text">适合深度学习</span><span id="freeHint">已排除课程时间</span></div></div>
+          <div class="stat-card"><div class="stat-top"><span>计划完成率</span><span class="stat-icon peach">↗</span></div><div class="stat-number"><span id="statRate">67</span><span class="stat-unit">%</span></div><div class="progress-track"><div class="progress-fill" id="statRateBar" style="width:67%"></div></div><div class="stat-foot"><span>比昨天提升 12%</span><span>本周平均</span></div></div>
+        </div>
+        <div class="content-grid">
+          <div class="panel schedule-panel">
+            <div class="panel-heading"><div><h2>今日安排</h2><p>把注意力放在当下的一件事</p></div><button class="text-button" data-goto="planner">查看完整计划 ↗</button></div>
+            <div class="timeline" id="todayTimeline"></div>
+          </div>
+          <div class="right-column">
+            <div class="panel ai-card">
+              <div class="ai-card-top"><div class="ai-orb">✧</div><span class="ai-label">LIFEFLOW AI</span><span class="live-pill">● DEMO MODE</span></div>
+              <h2>今天的智能建议</h2>
+              <p>你今天有一段完整的下午时间。建议优先完成高数作业，再安排轻量任务，避免临近截止日期集中赶工。</p>
+              <div class="ai-insight"><span>✦</span><div><strong>一个小建议</strong><br>把手机放远一点，给自己 45 分钟的专注时间。</div></div>
+              <button class="secondary-button" data-goto="planner">和 AI 规划一下 <span>→</span></button>
+            </div>
+            <div class="panel task-mini">
+              <div class="panel-heading compact"><div><h2>优先处理</h2><p>别让重要的事悄悄过期</p></div><button class="more-link" data-goto="tasks">全部</button></div>
+              <div id="priorityList" class="priority-list">
+                <div class="priority-row"><span class="priority-dot urgent"></span><div><strong>高数第三章作业</strong><small>截止：11月20日</small></div><span class="priority-label">高</span></div>
+                <div class="priority-row"><span class="priority-dot medium"></span><div><strong>英语阅读报告</strong><small>截止：11月22日</small></div><span class="priority-label">中</span></div>
+                <div class="priority-row"><span class="priority-dot low"></span><div><strong>社团活动报名</strong><small>截止：11月24日</small></div><span class="priority-label">低</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="page" id="page-timetable">
+        <div class="page-title-row"><div><div class="eyebrow">YOUR WEEK, AT A GLANCE</div><h1>我的课表</h1><p class="muted">拖动课程可调整时间，也可以从教务系统 PDF 导入。</p></div><div class="page-title-actions"><button class="secondary-button" id="importCourseBtn">⇪ 导入课表</button><button class="primary-button" id="addCourseBtn">＋ 添加课程</button></div></div>
+        <div class="panel timetable-panel">
+          <div class="panel-heading"><div><h2 id="weekTitle">第 12 周 · 秋季学期</h2><p>拖动课程可调整时间，切换周次只显示该周课程</p></div><div class="week-switch"><button id="prevWeek" title="上一周">‹</button><span id="weekLabel">第 12 周</span><button id="nextWeek" title="下一周">›</button></div></div>
+          <div class="empty-hint hidden" id="timetableEmpty">
+          <div class="empty-icon">▦</div>
+          <strong>课表还是空的</strong>
+          <p>从教务系统 PDF 一键导入，或手动添加你的第一门课。</p>
+          <div class="preview-actions" style="justify-content:center">
+            <button class="secondary-button" id="emptyImportBtn">⇪ 导入课表</button>
+            <button class="primary-button" id="emptyAddBtn">＋ 添加课程</button>
+          </div>
+        </div>
+        <div class="timetable-wrap"><div class="timetable" id="timetableGrid"></div></div>
+        </div>
+      </section>
+
+      <section class="page" id="page-tasks">
+        <div class="page-title-row"><div><div class="eyebrow">CAPTURE EVERYTHING</div><h1>任务中心</h1><p class="muted">把脑海里的事情放下来，LifeFlow 帮你理清优先级。</p></div><button class="primary-button" id="focusAddTask">＋ 添加任务</button></div>
+        <div class="panel capture-panel"><div class="capture-label"><span class="ai-orb tiny">✧</span><strong>用一句话告诉 LifeFlow</strong><span class="demo-label">AI 识别演示</span></div><div class="capture-input-row"><textarea id="taskInput" placeholder="例如：周五之前完成高数作业，预计需要 2 小时……"></textarea><button class="primary-button" id="parseTaskBtn">✧ 智能识别</button></div><div class="hint">演示模板使用本地模拟识别，不会调用真实模型或产生 API 费用。</div><div id="parsePreview" class="parse-preview hidden"></div></div>
+        <div class="task-toolbar">
+          <div class="filter-tabs"><button class="filter active" data-filter="all">全部任务</button><button class="filter" data-filter="todo">待完成</button><button class="filter" data-filter="done">已完成</button></div>
+          <div class="task-tools">
+            <input class="field task-search" id="taskSearch" placeholder="搜索任务…" autocomplete="off"/>
+            <select class="field task-sort" id="taskSort">
+              <option value="due">按截止日期</option>
+              <option value="priority">按优先级</option>
+              <option value="created">按添加顺序</option>
+            </select>
+          </div>
+          <span class="muted" id="taskCountLabel">共 3 项任务</span>
+        </div>
+        <div class="task-list" id="taskList"></div>
+      </section>
+
+      <section class="page" id="page-planner">
+        <div class="page-title-row"><div><div class="eyebrow">PLAN SMARTER, LIVE BETTER</div><h1>AI 智能规划</h1><p class="muted">让课程、任务和空闲时间形成一张可执行的日程。</p></div><span class="demo-label large">DEMO MODE · 模拟 AI</span></div>
+        <div class="planner-layout">
+          <div class="panel planner-input-panel"><div class="panel-heading"><div><h2>规划条件</h2><p>根据你的真实安排生成建议</p></div><span class="ai-orb">✧</span></div>
+            <label class="field-label">选择规划日期</label><input class="field" type="date" id="planDate" value="2026-11-18"/>
+            <label class="field-label">今天希望完成</label><div class="check-option"><input type="checkbox" checked id="includeTasks"/><label for="includeTasks">所有未完成任务</label></div>
+            <div class="check-option"><input type="checkbox" checked id="includeBreaks"/><label for="includeBreaks">安排必要休息时间</label></div>
+            <label class="field-label">每日学习上限</label><select class="field" id="dailyLimit"><option>4 小时</option><option selected>6 小时</option><option>8 小时</option></select>
+            <button class="primary-button full-button" id="generatePlan">✧ 生成智能计划</button>
+            <div class="small-note">当前为前端演示算法。接入模型 API 后，可升级自然语言理解和个性化建议。</div>
+          </div>
+          <div class="panel plan-result-panel"><div class="panel-heading"><div><h2>计划预览</h2><p id="planSubtitle">等待生成你的今日安排</p></div><span class="tag tag-green" id="planStatus">待生成</span></div><div id="planResult" class="plan-result empty-state"><div class="empty-icon">✧</div><strong>你的时间，值得认真安排</strong><p>点击左侧按钮，生成一份清晰、可执行的日程建议。</p></div><button class="secondary-button full-button hidden" id="acceptPlan">确认并保存计划 →</button></div>
+        </div>
+        <div class="panel reschedule-panel"><div class="panel-heading"><div><h2>计划动态调整</h2><p>临时有事或任务没完成？试试重新安排。</p></div><span class="tag tag-purple">核心体验</span></div><div class="reschedule-row"><input class="field" id="rescheduleInput" placeholder="例如：下午临时有事，高数作业没完成……"/><button class="secondary-button" id="rescheduleBtn">重新规划</button></div><div id="rescheduleResult" class="reschedule-result hidden"></div></div>
+      </section>
+
+      <section class="page" id="page-insights">
+        <div class="page-title-row"><div><div class="eyebrow">SMALL STEPS, REAL PROGRESS</div><h1>数据统计</h1><p class="muted">看见自己的节奏，也看见每一点进步。</p></div><span class="demo-label large">实时统计</span></div>
+        <div class="stats-grid insight-stats"><div class="stat-card"><div class="stat-top"><span>本周完成率</span><span class="stat-icon mint">↗</span></div><div class="stat-number" id="weeklyRate">67<span class="stat-unit">%</span></div><div class="stat-foot"><span class="green-text">稳步推进</span><span>本周任务</span></div></div><div class="stat-card"><div class="stat-top"><span>完成任务</span><span class="stat-icon blue">✓</span></div><div class="stat-number" id="completedCount">8</div><div class="stat-foot"><span>本周累计</span></div></div><div class="stat-card"><div class="stat-top"><span>专注时长</span><span class="stat-icon lavender">◷</span></div><div class="stat-number"><span id="focusHours">12.5</span><span class="stat-unit"> h</span></div><div class="stat-foot"><span>本周累计</span></div></div><div class="stat-card"><div class="stat-top"><span>连续规划</span><span class="stat-icon peach">✦</span></div><div class="stat-number">4<span class="stat-unit"> 天</span></div><div class="stat-foot"><span>保持好习惯</span></div></div></div>
+        <div class="content-grid insights-grid"><div class="panel"><div class="panel-heading"><div><h2>每周任务完成情况</h2><p>根据你当前的任务自动计算</p></div></div><div class="bar-chart"><div class="chart-y"><span>100%</span><span>75%</span><span>50%</span><span>25%</span><span>0</span></div><div class="bars" id="weeklyBars"><div class="bar-col"><i style="height:58%"></i><span>周一</span></div><div class="bar-col"><i style="height:82%"></i><span>周二</span></div><div class="bar-col"><i style="height:68%"></i><span>周三</span></div><div class="bar-col"><i style="height:92%"></i><span>周四</span></div><div class="bar-col"><i style="height:48%"></i><span>周五</span></div><div class="bar-col"><i style="height:74%"></i><span>周六</span></div><div class="bar-col"><i style="height:35%"></i><span>周日</span></div></div></div></div><div class="panel summary-panel"><div class="panel-heading"><div><h2>AI 本周小结</h2><p id="summaryHint">根据真实任务生成</p></div><button class="text-button" id="aiSummaryBtn">✧ 生成</button></div><p>你本周保持了不错的任务推进节奏。建议将高优先级任务尽量安排在精力充沛的时段，并为临时事项留出缓冲时间。</p><div class="summary-highlight"><strong>下周建议</strong><span>每晚花 5 分钟确认第二天的三件重要事项。</span></div></div></div>
+      </section>
+        <div class="panel data-panel">
+          <div class="panel-heading"><div><h2>数据管理</h2><p>数据保存在本机浏览器，换设备或清理缓存前请先备份</p></div><span class="tag tag-gray">本地存储</span></div>
+          <div class="data-actions">
+            <button class="secondary-button" id="exportData">⬇ 导出备份</button>
+            <button class="secondary-button" id="importDataBtn">⬆ 导入备份</button>
+            <button class="secondary-button danger-ghost" id="resetData">↺ 恢复示例数据</button>
+            <button class="secondary-button danger-ghost" id="clearData">🗑 清空所有数据</button>
+            <input type="file" id="importFile" accept="application/json,.json" hidden/>
+          </div>
+          <div class="hint" id="dataHint">导出后会得到一个 JSON 文件，包含任务、课表、周次和已保存的计划。</div>
+        </div>
+      <footer class="app-footer">LifeFlow © 2026 <span>Built for a more intentional campus life.</span></footer>
+    </main>
+  </div>
+  <div class="intro hidden" id="intro">
+    <div class="intro-card">
+      <div class="intro-lang">
+        <button type="button" data-lang-label="zh" class="active" id="introZh">中文</button>
+        <button type="button" data-lang-label="en" id="introEn">English</button>
+      </div>
+      <div class="intro-logo">L</div>
+      <h2>欢迎使用 LifeFlow</h2>
+      <p class="intro-sub">用 AI 把课程、任务和空闲时间，编织成一份真正可执行的校园计划。</p>
+      <div class="intro-features">
+        <div class="intro-feature"><span>⌂</span><div><b>总览</b><small>一眼看清今天的课程、待办和空闲时间</small></div></div>
+        <div class="intro-feature"><span>▦</span><div><b>我的课表</b><small>拖拽调整课程，PDF 一键导入</small></div></div>
+        <div class="intro-feature"><span>☷</span><div><b>任务中心</b><small>一句话添加，AI 帮你识别</small></div></div>
+        <div class="intro-feature"><span>✧</span><div><b>AI 智能规划</b><small>避开课程时间，自动排出日程</small></div></div>
+        <div class="intro-feature"><span>▥</span><div><b>数据统计</b><small>真实完成率与专注时长</small></div></div>
+      </div>
+      <div class="intro-ai">💡 想要智能识别？点右上角 <b>AI</b> 按钮填入自己的 API Key 即可（不填也能用本地规则）。</div>
+      <div class="intro-foot">
+        <label class="intro-hide"><input type="checkbox" id="introHide"/> 下次不再显示</label>
+        <button class="primary-button" id="introStart">开始使用</button>
+      </div>
+    </div>
+  </div>
+  <div class="praise hidden" id="praise">
+    <div class="praise-spark">✦</div>
+    <div class="praise-body">
+      <strong id="praiseTitle">完成啦</strong>
+      <p id="praiseText"></p>
+    </div>
+  </div>
+  <div class="toast" id="toast"></div>
+  <dialog id="importDialog"><form method="dialog" class="dialog-form" id="importForm">
+    <div class="dialog-head"><div><h2>导入课表</h2><p>上传教务系统导出的 PDF，或直接粘贴课表文字</p></div><button type="button" class="close-dialog" data-close="self" title="关闭">×</button></div>
+    <label>选择 PDF 文件</label>
+    <input class="field" type="file" id="pdfFile" accept="application/pdf,.pdf"/>
+    <div class="hint" id="pdfHint">支持文字版 PDF（扫描件无法识别，请改用下方粘贴）。</div>
+    <label>或者粘贴课表文字</label>
+    <textarea class="field" id="scheduleText" rows="5" placeholder="示例：&#10;高等数学 周一 第1-2节 3-205&#10;大学英语 周一 第5-6节 2-301"></textarea>
+    <div class="preview-actions" style="margin-top:14px">
+      <button type="button" class="secondary-button" id="parseScheduleBtn">解析</button>
+      <button type="button" class="primary-button" id="confirmImportBtn" disabled>导入全部</button>
+    </div>
+    <div id="importPreview" class="import-preview"></div>
+  </form></dialog>
+  <dialog id="profileDialog"><form method="dialog" class="dialog-form" id="profileForm">
+    <div class="dialog-head"><div><h2>个人资料</h2><p>仅保存在本机浏览器，用于个性化称呼</p></div><button type="button" class="close-dialog" data-close="self" title="关闭">×</button></div>
+    <label>你的名字 / 昵称</label>
+    <input class="field" id="profileNameInput" placeholder="例如：dear student" autocomplete="off"/>
+    <div class="preview-actions" style="margin-top:16px">
+      <button type="button" class="secondary-button" id="profileCancel">取消</button>
+      <button type="button" class="primary-button" id="profileSave">保存</button>
+    </div>
+  </form></dialog>
+  <dialog id="aiDialog"><form method="dialog" class="dialog-form" id="aiForm">
+    <div class="dialog-head"><div><h2>AI 连接设置</h2><p>填入 DeepSeek API Key 后，任务识别与小结由模型生成</p></div><button type="button" class="close-dialog" data-close="self" title="关闭">×</button></div>
+    <label>API 地址（OpenAI 兼容）</label>
+    <input class="field" id="aiBaseInput" placeholder="https://api.deepseek.com/v1" autocomplete="off"/>
+    <div class="hint">默认 DeepSeek。也可以填 Kimi、通义、OpenAI 或本机 Ollama 的兼容地址。</div>
+    <label>API Key</label>
+    <input class="field" id="aiKeyInput" type="password" placeholder="sk-..." autocomplete="off"/>
+    <label>模型名称</label>
+    <input class="field" id="aiModelInput" list="aiModelOptions" placeholder="deepseek-flash" autocomplete="off"/>
+    <datalist id="aiModelOptions">
+      <option value="deepseek-flash"></option>
+      <option value="deepseek-v4-pro"></option>
+      <option value="kimi-k2"></option>
+      <option value="qwen-plus"></option>
+    </datalist>
+    <div class="hint">Key 只保存在本机浏览器（localStorage），不会写进代码，也不会传给第三方。</div>
+    <div class="ai-status" id="aiStatus">未连接，当前使用本地规则</div>
+    <div class="preview-actions" style="margin-top:16px">
+      <button type="button" class="secondary-button" id="aiClearBtn">清除 Key</button>
+      <button type="button" class="secondary-button" id="aiTestBtn">测试连接</button>
+      <button type="button" class="primary-button" id="aiSaveBtn">保存</button>
+    </div>
+  </form></dialog>
+  <dialog id="taskDialog"><form method="dialog" id="taskForm" class="dialog-form">
+    <div class="dialog-head"><div><h2 id="taskDialogTitle">添加任务</h2><p>补充信息后，AI 规划会据此排程</p></div><button type="button" class="close-dialog" data-close="self" title="关闭">×</button></div>
+    <label>任务名称</label><input class="field" id="taskTitle" required placeholder="例如：高数第三章作业"/>
+    <div class="form-two">
+      <div><label>截止日期</label><input class="field" type="date" id="taskDeadline"/></div>
+      <div><label>预计时长（分钟）</label><input class="field" type="number" min="5" step="5" id="taskDuration" value="60"/></div>
+    </div>
+    <div class="form-two">
+      <div><label>优先级</label><select class="field" id="taskPriority"><option>高</option><option selected>中</option><option>低</option></select></div>
+      <div><label>分类</label><select class="field" id="taskCategory"><option>学习</option><option>校园</option><option>生活</option></select></div>
+    </div>
+    <div class="preview-actions" style="margin-top:18px">
+      <button type="button" class="secondary-button" id="cancelTask">取消</button>
+      <button class="primary-button" type="submit">保存任务</button>
+    </div>
+  </form></dialog>
+  <dialog id="courseDialog"><form method="dialog" id="courseForm" class="dialog-form"><div class="dialog-head"><div><h2 id="courseDialogTitle">添加课程</h2><p>填写课程基本信息</p></div><button type="button" class="close-dialog" data-close="self" title="关闭">×</button></div><label>课程名称</label><input class="field" id="courseName" required placeholder="例如：大学物理"/><div class="form-two"><div><label>星期</label><select class="field" id="courseDay"><option value="1">周一</option><option value="2">周二</option><option value="3">周三</option><option value="4">周四</option><option value="5">周五</option></select></div><div><label>地点</label><input class="field" id="courseRoom" placeholder="教学楼 2-101"/></div></div><div class="form-two"><div><label>开始时间</label><input class="field" type="time" id="courseStart" value="10:00"/></div><div><label>结束时间</label><input class="field" type="time" id="courseEnd" value="11:40"/></div></div><button class="primary-button full-button" value="default">保存课程</button></form></dialog>
+  <script src="i18n.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
