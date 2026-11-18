@@ -162,6 +162,7 @@
     "API 地址（OpenAI 兼容）": "API base URL (OpenAI-compatible)",
     "服务商": "Provider",
     "通义千问（阿里百炼）": "Qwen (Alibaba DashScope)",
+    "豆包（火山方舟）": "Doubao (Volcengine Ark)",
     "Kimi（月之暗面）": "Kimi (Moonshot)",
     "本机 Ollama": "Local Ollama",
     "自定义": "Custom",

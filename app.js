@@ -757,6 +757,7 @@ const AI_DEFAULT_MODEL = "deepseek-flash";
 const AI_PROVIDERS = {
   deepseek:  { base: "https://api.deepseek.com/v1", model: "deepseek-flash" },
   dashscope: { base: "https://dashscope.aliyuncs.com/compatible-mode/v1", model: "qwen-plus" },
+  doubao:    { base: "https://ark.cn-beijing.volces.com/api/v3", model: "doubao-seed-1-6-250615" },
   kimi:      { base: "https://api.moonshot.cn/v1", model: "kimi-k2" },
   openai:    { base: "https://api.openai.com/v1", model: "gpt-4o-mini" },
   ollama:    { base: "http://localhost:11434/v1", model: "llama3" },
