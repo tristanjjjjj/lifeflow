@@ -991,6 +991,19 @@ function loadScript(src, timeout = 12000) {
   });
 }
 
+const PDF_CMAP_URL = "vendor/cmaps/";
+const PDF_STD_FONTS_URL = "vendor/standard_fonts/";
+
+function pdfDocOptions(buffer) {
+  return {
+    data: new Uint8Array(buffer),
+    cMapUrl: PDF_CMAP_URL,
+    cMapPacked: true,
+    standardFontDataUrl: PDF_STD_FONTS_URL,
+    useSystemFonts: true
+  };
+}
+
 async function ensurePdfJs() {
   if (window.pdfjsLib) return;
   for (const src of PDF_SCRIPT_SOURCES) {
@@ -1007,7 +1020,7 @@ async function extractPdfPages(file) {
   await ensurePdfJs();
   const buffer = await file.arrayBuffer();
   const pdf = await Promise.race([
-    window.pdfjsLib.getDocument({ data: new Uint8Array(buffer) }).promise,
+    window.pdfjsLib.getDocument(pdfDocOptions(buffer)).promise,
     new Promise((_, reject) => setTimeout(() => reject(new Error("PDF 读取超时，文件可能过大或已损坏")), 25000))
   ]);
   const pages = [];
@@ -1151,9 +1164,15 @@ function parsePdfLayout(items) {
       if (d < bestDist) { bestDist = d; name = l.t.trim(); }
     });
     if (!name) return;
-    const roomM = text.match(/场地[:：]([^/]+)/);
-    const rest = text.slice(m.index + m[0].length);
-    const weeksM = rest.split("/")[0].split("教师")[0].split("教学班")[0].trim();
+    // 教室：两种行序都试，兼容“场”与“地:”被拆开、以及旋转后行序反转的情况
+    const asc = b.lines.map(l => l.t).slice().reverse().join("");
+    const roomM = text.match(/场地[:：]([^/]+)/) || asc.match(/场地[:：]([^/]+)/);
+    // 周次：只从含节次的那一行取，避免串到相邻课程
+    let weeks = "";
+    if (markerLine) {
+      const wm = markerLine.t.match(/\(\d+-\d+节\)\s*([^\/]*)/);
+      if (wm) weeks = wm[1].trim();
+    }
     const [start, end] = sectionTime(Number(m[1]), Number(m[2]));
     out.push({
       name,
@@ -1161,7 +1180,7 @@ function parsePdfLayout(items) {
       start,
       end,
       room: roomM ? roomM[1].trim().replace(/\s+/g, "") : "",
-      weeks: weeksM.replace(/^[,\s]+/, "")
+      weeks: weeks.replace(/^[,\s]+/, "")
     });
   });
   return out;
@@ -1186,7 +1205,7 @@ function normalizeCourseList(obj) {
 async function renderPdfPageImages(file, maxPages = 3) {
   await ensurePdfJs();
   const buffer = await file.arrayBuffer();
-  const pdf = await window.pdfjsLib.getDocument({ data: new Uint8Array(buffer) }).promise;
+  const pdf = await window.pdfjsLib.getDocument(pdfDocOptions(buffer)).promise;
   const images = [];
   const n = Math.min(pdf.numPages, maxPages);
   for (let i = 1; i <= n; i++) {
