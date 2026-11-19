@@ -498,7 +498,11 @@ function buildPlan(iso, opts = {}) {
   }
 
   if (includeBreaks) {
-    items.push({ s: 12 * 60, e: 12 * 60 + 40, title: "午餐与休息", meta: "离开屏幕，给大脑一点空间", kind: "break" });
+    const bStart = 12 * 60, bEnd = 12 * 60 + 40;
+    const clash = items.some(it => it.s < bEnd && it.e > bStart);   // 与已有安排冲突就不插入
+    if (!clash) {
+      items.push({ s: bStart, e: bEnd, title: "午餐与休息", meta: "离开屏幕，给大脑一点空间", kind: "break" });
+    }
   }
 
   items.sort((a, b) => a.s - b.s);
@@ -890,43 +894,33 @@ $("#acceptPlan")?.addEventListener("click", () => {
 });
 
 $("#rescheduleBtn")?.addEventListener("click", async () => {
-  const text = $("#rescheduleInput").value.trim();
-  if (!text) { toast("请描述发生了什么变化"); return; }
+  const text = ($("#rescheduleInput").value || "").trim();
+  if (!text) { toast("描述一下发生了什么，比如「工程制图之后想校园跑」"); return; }
 
   const btn = $("#rescheduleBtn");
   const iso = $("#planDate").value || todayISO();
   const limitHours = Number(String($("#dailyLimit").value).replace(/[^\d.]/g, "")) || 6;
 
-  // ① 先识别“移出/恢复计划”的意图
-  let excluded = [], restored = [];
-  const wantExclude = EXCLUDE_RE.test(text);
-  const wantRestore = RESTORE_RE.test(text);
-
-  if (wantExclude || wantRestore) {
-    let targets = guessTasksFromText(text);
-    let byAI = false;
-    if (!targets.length && aiKey()) {
-      btn.disabled = true; btn.textContent = "识别中…";
-      try {
-        const r = await aiRescheduleIntent(text);
-        if (wantExclude) targets = r.exclude;
-        if (wantRestore) targets = r.restore;
-        byAI = true;
-      } catch (e) { /* 忽略，走普通重排 */ }
-      btn.disabled = false; btn.textContent = "重新规划";
-    }
-    if (wantExclude && !wantRestore) {
-      excluded = targets;
-      excluded.forEach(t => { t.planSkip = true; });
-    } else if (wantRestore) {
-      restored = targets;
-      restored.forEach(t => { t.planSkip = false; });
-    }
-    if (excluded.length || restored.length) persistTasks();
-    targets._byAI = byAI;
+  btn.disabled = true; btn.textContent = "理解中…";
+  let actions = [], reply = "", source = "本地规则";
+  if (aiKey()) {
+    try {
+      const r = await aiParseCommand(text);
+      actions = r.actions; reply = r.reply; source = "DeepSeek";
+    } catch (e) { /* 降级 */ }
   }
+  if (!actions.length) {
+    const r = localParseCommand(text);
+    actions = r.actions;
+    if (!reply) reply = r.reply;
+  }
+  btn.disabled = false; btn.textContent = "重新规划";
 
-  // ② 重新排程
+  // ① 执行理解到的操作（新增任务 / 改期 / 完成 / 移出 / 删除等）
+  let log = [];
+  if (actions.length) log = applyCommandActions(actions);
+
+  // ② 基于最新任务重新排程
   const before = savedPlan && savedPlan.date === iso ? savedPlan.items : buildPlan(iso, { limitHours });
   const beforeIds = new Set(before.filter(i => i.kind === "task").map(i => i.taskId));
   const plan = buildPlan(iso, { includeTasks: true, includeBreaks: true, limitHours });
@@ -936,26 +930,20 @@ $("#rescheduleBtn")?.addEventListener("click", async () => {
   const kept = [...afterIds].filter(id => beforeIds.has(id)).length;
   const moved = [...afterIds].filter(id => !beforeIds.has(id)).length;
 
-  // ③ 生成说明
-  const lines = [`<strong>✧ 已按最新情况重新排程</strong>`];
-  lines.push(`识别到你的说明：${escapeHtml(text.slice(0, 50))}${text.length > 50 ? "…" : ""}`);
-  if (excluded.length) {
-    lines.push(`<b style="color:#b25f2b">已移出计划：</b>${excluded.map(t => escapeHtml(t.title)).join("、")}（任务仍保留在任务中心，点 ↩ 可恢复）`);
-  }
-  if (restored.length) {
-    lines.push(`<b style="color:#2f8f6b">已恢复计划：</b>${restored.map(t => escapeHtml(t.title)).join("、")}`);
-  }
-  if ((wantExclude || wantRestore) && !excluded.length && !restored.length) {
-    lines.push(`<span style="color:#c0392b">没有匹配到具体任务</span>，请把任务名写进描述里，例如“取消预习”或“不要安排背单词”。`);
-  }
-  lines.push(`新的日程共安排 <b>${afterIds.size}</b> 项任务，其中 ${kept} 项保持原时段，${moved} 项重新安排。`);
+  // ③ 结果面板
+  const out = [`<strong>✧ 已理解并重新排程</strong>`];
+  out.push(`你说的是：${escapeHtml(text.slice(0, 60))}${text.length > 60 ? "…" : ""}`);
+  if (reply) out.push(`<span style="color:var(--sub)">理解：${escapeHtml(reply)}</span>`);
+  if (log.length) out.push(`<b style="color:#2f8f6b">已执行：</b>${log.map(escapeHtml).join("；")}`);
+  else out.push(`<span style="color:#c0392b">没有识别出可执行的操作</span>，可以试试「工程制图之后想校园跑」「取消预习」「把高数推迟到后天」。`);
+  out.push(`新的日程共安排 <b>${afterIds.size}</b> 项任务（${kept} 项保持原时段，${moved} 项重新安排）。`);
 
   const box = $("#rescheduleResult");
   box.classList.remove("hidden");
-  box.innerHTML = lines.join("<br>");
+  box.innerHTML = out.join("<br>");
   renderPlan(plan, true);
   renderDashboard();
-  toast(excluded.length ? `已移出 ${excluded.length} 项任务` : "已生成新的日程安排");
+  toast(log.length ? `已执行 ${log.length} 个操作并重新排程` : "已重新排程");
 });
 
 /* ---------- 动态调整：意图识别 ---------- */
@@ -1149,6 +1137,8 @@ const WEEK_CN = ["", "周一", "周二", "周三", "周四", "周五", "周六",
 function findTaskByRef(ref) {
   const r = String(ref || "").trim();
   if (!r) return null;
+  const byId = tasks.find(t => t.id === r);
+  if (byId) return byId;
   const open = tasks.filter(t => !t.done);
   let hit = open.find(t => t.title === r) ||
             open.find(t => t.title.indexOf(r) !== -1 || r.indexOf(t.title) !== -1);
@@ -1176,6 +1166,7 @@ async function aiParseCommand(text) {
       'query：查询 {what:"today_schedule"|"remaining_tasks"|"free_time"}\n' +
       "语义区分（重要）：用户说「取消/不想做/不做了/别安排/去掉」= 移出计划 → exclude_task；" +
       "只有明确说「做完了/完成了」才用 complete_task。\n" +
+      "「只想做 X 类 / 只安排 X」时：保留 X 类任务，把【其它类别】移出计划，绝不能把 X 类移出（例：只想做学习类 → 学习类保留，校园/生活类 exclude_task）。\n" +
       "notBefore 必须是「YYYY-MM-DD HH:MM」完整格式；若说「某课之后/下课后」，从课表取该课结束时间+5分钟。\n" +
       '只输出 JSON：{"reply":"一句简短中文回应","actions":[...]}。match 与任务列表对应；“明天/后天/下周一”换算成具体日期。不要解释。\n' +
       `现有未完成任务：\n${list}\n我的课表：${courseLines}` },
@@ -2304,7 +2295,7 @@ document.querySelectorAll("dialog").forEach(dlg => {
   try { LEGACY_KEYS.forEach(k => localStorage.removeItem(k)); } catch (e) {}
 })();
 
-const APP_VERSION = "2026-11-19 #x";
+const APP_VERSION = "2026-11-19 #z";
 (function stampVersion() {
   const f = $("#appFooter");
   if (f && !f.dataset.stamped) {
