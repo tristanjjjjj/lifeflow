@@ -1961,7 +1961,7 @@ document.querySelectorAll("dialog").forEach(dlg => {
   try { LEGACY_KEYS.forEach(k => localStorage.removeItem(k)); } catch (e) {}
 })();
 
-const APP_VERSION = "2026-11-19 #m";
+const APP_VERSION = "2026-11-19 #n";
 (function stampVersion() {
   const f = $("#appFooter");
   if (f && !f.dataset.stamped) {

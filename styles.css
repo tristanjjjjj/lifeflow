@@ -557,3 +557,14 @@ dialog::backdrop{background:rgba(20,24,40,.45);backdrop-filter:blur(4px)}
 @keyframes tipIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
 .preview-constraint{display:inline-block;margin-left:6px;padding:1px 6px;border-radius:5px;font-size:8.5px;
   background:var(--accent-soft);color:var(--accent)}
+
+/* ---------- 个人信息移到左上角 ---------- */
+.profile-top{margin:0 3px 22px;padding:11px 12px;border:1px solid var(--line-soft);border-radius:14px;
+  background:var(--bg-alt);cursor:pointer;transition:transform .25s var(--ease),border-color .2s,background .2s}
+.profile-top:hover{transform:translateY(-2px);border-color:var(--accent);background:var(--panel)}
+.profile-top .more{color:var(--faint);font-size:13px;letter-spacing:1px}
+.sidebar-bottom .tip-card{margin-bottom:0}
+@media(max-width:720px){
+  .profile-top{padding:8px 0;justify-content:center;background:transparent;border-color:transparent}
+  .profile-top:hover{transform:none;border-color:var(--line-soft)}
+}
