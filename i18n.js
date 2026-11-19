@@ -150,6 +150,8 @@
     "💡 想要智能识别？点右上角": "Tip: tap AI at the top right",
     "按钮填入自己的 API Key 即可（不填也能用本地规则）。": "to use your own API key. Without one, local rules still work.",
     "↕ 上下滑动可切换工作区（电脑上：Alt + ↑ / ↓ 或触控板滚到底继续滚）": "↕ Swipe up/down to switch workspaces (desktop: Alt + ↑/↓, or keep scrolling at the edge)",
+    "🔒 所有数据只保存在你自己的浏览器里，不会上传到任何服务器；换设备或清理缓存前，请在「数据统计 → 数据管理」导出备份。": "🔒 All data stays in your own browser and is never uploaded anywhere. Export a backup from Insights → Data before switching devices or clearing cache.",
+    "🔒 数据仅保存在本机浏览器，不会上传服务器 · 换设备前请导出备份": "🔒 Data lives only in this browser · export a backup before switching devices",
     "下次不再显示": "Don't show again",
     "开始使用": "Get started",
     "选择语言": "Language",

@@ -579,3 +579,9 @@ dialog::backdrop{background:rgba(20,24,40,.45);backdrop-filter:blur(4px)}
 @media(max-width:720px){
   .page + .page{margin-top:46px;padding-top:40px}
 }
+
+/* ---------- 数据隐私说明 ---------- */
+.intro-privacy{font-size:10.5px;line-height:1.7;color:var(--sub);background:var(--green-soft);
+  border:1px solid color-mix(in srgb,var(--green) 22%,var(--line-soft));
+  border-radius:10px;padding:11px 13px;margin-bottom:12px;text-align:left}
+.footer-privacy{font-size:9.5px;color:var(--faint);margin-bottom:6px}

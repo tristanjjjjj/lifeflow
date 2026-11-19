@@ -2016,7 +2016,7 @@ document.querySelectorAll("dialog").forEach(dlg => {
   try { LEGACY_KEYS.forEach(k => localStorage.removeItem(k)); } catch (e) {}
 })();
 
-const APP_VERSION = "2026-11-19 #q";
+const APP_VERSION = "2026-11-19 #r";
 (function stampVersion() {
   const f = $("#appFooter");
   if (f && !f.dataset.stamped) {

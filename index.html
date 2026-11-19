@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20261119q" />
+  <link rel="stylesheet" href="styles.css?v=20261119r" />
 </head>
 <body>
   <div class="app-shell">
@@ -175,7 +175,10 @@
           </div>
           <div class="hint" id="dataHint">导出后会得到一个 JSON 文件，包含任务、课表、周次和已保存的计划。</div>
         </div>
-      <footer class="app-footer" id="appFooter">LifeFlow © 2026 <span>Built for a more intentional campus life.</span></footer>
+      <footer class="app-footer" id="appFooter">
+        <div class="footer-privacy">🔒 数据仅保存在本机浏览器，不会上传服务器 · 换设备前请导出备份</div>
+        LifeFlow © 2026 <span>Built for a more intentional campus life.</span>
+      </footer>
     </main>
   </div>
   <div class="intro hidden" id="intro">
@@ -194,6 +197,7 @@
         <div class="intro-feature"><span>✧</span><div><b>AI 智能规划</b><small>避开课程时间，自动排出日程</small></div></div>
         <div class="intro-feature"><span>▥</span><div><b>数据统计</b><small>真实完成率与专注时长</small></div></div>
       </div>
+      <div class="intro-privacy">🔒 所有数据只保存在你自己的浏览器里，不会上传到任何服务器；换设备或清理缓存前，请在「数据统计 → 数据管理」导出备份。</div>
       <div class="intro-swipe">↕ 上下滑动可切换工作区（电脑上：Alt + ↑ / ↓ 或触控板滚到底继续滚）</div>
       <div class="intro-ai">💡 想要智能识别？点右上角 <b>AI</b> 按钮填入自己的 API Key 即可（不填也能用本地规则）。</div>
       <div class="intro-foot">
@@ -312,7 +316,7 @@
     </div>
   </form></dialog>
   <dialog id="courseDialog"><form method="dialog" id="courseForm" class="dialog-form"><div class="dialog-head"><div><h2 id="courseDialogTitle">添加课程</h2><p>填写课程基本信息</p></div><button type="button" class="close-dialog" data-close="self" title="关闭">×</button></div><label>课程名称</label><input class="field" id="courseName" required placeholder="例如：大学物理"/><div class="form-two"><div><label>星期</label><select class="field" id="courseDay"><option value="1">周一</option><option value="2">周二</option><option value="3">周三</option><option value="4">周四</option><option value="5">周五</option></select></div><div><label>地点</label><input class="field" id="courseRoom" placeholder="教学楼 2-101"/></div></div><div class="form-two"><div><label>开始时间</label><input class="field" type="time" id="courseStart" value="10:00"/></div><div><label>结束时间</label><input class="field" type="time" id="courseEnd" value="11:40"/></div></div><button class="primary-button full-button" value="default">保存课程</button></form></dialog>
-  <script src="i18n.js?v=20261119q"></script>
-  <script src="app.js?v=20261119q"></script>
+  <script src="i18n.js?v=20261119r"></script>
+  <script src="app.js?v=20261119r"></script>
 </body>
 </html>
