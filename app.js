@@ -1131,6 +1131,103 @@ function maybeShowInstallTip() {
   setTimeout(() => tip.classList.remove("hidden"), 1600);
 }
 
+/* ---------- 左侧 AI 对话窗口 ---------- */
+const chatLog = [];
+
+function chatScroll() {
+  const box = $("#aiMessages");
+  if (box) box.scrollTop = box.scrollHeight;
+}
+
+function chatBubble(role, text, actions, extra) {
+  const box = $("#aiMessages");
+  if (!box) return null;
+  const div = document.createElement("div");
+  div.className = "msg " + role;
+  let html = escapeHtml(text).replace(/\n/g, "<br>");
+  if (actions && actions.length) {
+    html += `<ul class="act-list">${actions.map(a => `<li>${escapeHtml(describeAction(a))}</li>`).join("")}</ul>`;
+  }
+  if (extra) html += `<span class="msg-sub">${escapeHtml(extra)}</span>`;
+  div.innerHTML = html;
+  box.appendChild(div);
+  chatScroll();
+  return div;
+}
+
+function chatAddExecuteButtons(div, actions) {
+  const row = document.createElement("div");
+  row.className = "msg-actions";
+  row.innerHTML = `<button class="exec">执行</button><button class="skip">不用了</button>`;
+  div.appendChild(row);
+  row.querySelector(".exec").onclick = () => {
+    const log = applyCommandActions(actions);
+    const answer = actions.filter(a => a.type === "query").map(q => answerQuery(q.what)).filter(Boolean).join("；");
+    row.remove();
+    chatBubble("ai", "已执行：" + log.join("；") + (answer ? `\n${answer}` : ""));
+    if (typeof renderPlan === "function") { try { renderPlanFromState(); } catch (e) {} }
+    toast("已执行 " + log.length + " 个操作");
+  };
+  row.querySelector(".skip").onclick = () => {
+    row.remove();
+    chatBubble("ai", "好的，这次不改动。");
+  };
+  chatScroll();
+}
+
+async function chatSend(text) {
+  const msg = String(text || "").trim();
+  if (!msg) return;
+  chatBubble("user", msg);
+  const input = $("#aiInput");
+  if (input) input.value = "";
+
+  let reply = "", actions = [], source = "本地规则";
+  const sendBtn = $("#aiSend");
+  if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = "…"; }
+
+  if (aiKey()) {
+    try {
+      const r = await aiParseCommand(msg);
+      reply = r.reply; actions = r.actions; source = "DeepSeek";
+    } catch (e) { /* 降级 */ }
+  }
+  if (!actions.length) {
+    const r = localParseCommand(msg);
+    actions = r.actions;
+    if (!reply) reply = r.reply;
+  }
+  if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = "发送"; }
+
+  if (!actions.length) {
+    chatBubble("ai", "我没太理解这句话。可以试试：「工程制图之后想校园跑」「取消预习」「把高数推迟到后天」「我今天还有什么安排」。");
+    return;
+  }
+  const div = chatBubble("ai", reply || `我理解到 ${actions.length} 个操作：`, actions, source === "DeepSeek" ? "由 AI 理解" : "本地规则识别");
+  if (div) chatAddExecuteButtons(div, actions);
+}
+
+function openAiDrawer() {
+  const d = $("#aiDrawer");
+  if (!d) return;
+  d.classList.remove("hidden");
+  if (!chatLog.length) {
+    chatBubble("ai", "你好，我是 LifeFlow 助手。\n可以直接用自然语言让我帮你调整计划，例如：\n· 工程制图之后想校园跑\n· 晚上不想预习了\n· 把高数作业推迟到后天\n· 我今天还有什么安排");
+  }
+  const input = $("#aiInput");
+  if (input) setTimeout(() => input.focus(), 120);
+}
+function closeAiDrawer() { $("#aiDrawer")?.classList.add("hidden"); }
+
+$("#aiChatBtn")?.addEventListener("click", openAiDrawer);
+$("#aiChatTopBtn")?.addEventListener("click", openAiDrawer);
+$("#aiDrawerClose")?.addEventListener("click", closeAiDrawer);
+$("#aiSend")?.addEventListener("click", () => chatSend($("#aiInput").value));
+$("#aiInput")?.addEventListener("keydown", e => {
+  if (e.key === "Enter" && (e.metaKey || e.ctrlKey || !e.shiftKey)) { e.preventDefault(); chatSend($("#aiInput").value); }
+});
+$$("#aiQuick button").forEach(b => b.addEventListener("click", () => chatSend(b.dataset.q)));
+
 /* ---------- 统一自然语言指令 ---------- */
 const WEEK_CN = ["", "周一", "周二", "周三", "周四", "周五", "周六", "周日"];
 
@@ -2295,7 +2392,7 @@ document.querySelectorAll("dialog").forEach(dlg => {
   try { LEGACY_KEYS.forEach(k => localStorage.removeItem(k)); } catch (e) {}
 })();
 
-const APP_VERSION = "2026-11-19 #z";
+const APP_VERSION = "2026-11-20 #a";
 (function stampVersion() {
   const f = $("#appFooter");
   if (f && !f.dataset.stamped) {
