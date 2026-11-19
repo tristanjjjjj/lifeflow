@@ -734,49 +734,54 @@ function mockParse(text) {
   }];
 }
 
+let pendingActions = [];
+
 $("#parseTaskBtn")?.addEventListener("click", async () => {
   const text = $("#taskInput").value.trim();
-  if (!text) { toast("先输入一段任务描述"); return; }
+  if (!text) { toast("先说一句话，比如「明天下午三点前交英语作文，1 小时」"); return; }
 
   const btn = $("#parseTaskBtn");
-  let source = "本地规则";
-  parsedDraft = [];
+  let source = "本地规则", reply = "";
+  pendingActions = [];
 
   if (aiKey()) {
-    btn.disabled = true; btn.textContent = "识别中…";
+    btn.disabled = true; btn.textContent = "理解中…";
     try {
-      parsedDraft = await aiParseTask(text);
+      const r = await aiParseCommand(text);
+      pendingActions = r.actions;
+      reply = r.reply;
       source = "DeepSeek";
-    } catch (err) {
+    } catch (e) {
       toast("AI 不可用，已用本地规则");
     }
     btn.disabled = false; btn.textContent = "✧ 智能识别";
   }
-  if (!parsedDraft.length) parsedDraft = mockParse(text);
+  if (!pendingActions.length) {
+    const r = localParseCommand(text);
+    pendingActions = r.actions;
+    reply = r.reply;
+  }
+  if (!pendingActions.length) { toast("没有理解出任务或指令，换个说法试试"); return; }
 
   const p = $("#parsePreview");
   p.classList.remove("hidden");
-  const constrained = parsedDraft.filter(t => t.notBefore);
-  const tip = $("#constraintTip");
-  if (tip) {
-    if (constrained.length) {
-      tip.classList.remove("hidden");
-      tip.innerHTML = `<span class="ct-icon">⏰</span><div>已识别到时间约束：<strong>不早于 ${constrained.map(t => String(t.notBefore).slice(11)).join("、")}</strong> —— 生成计划时会自动排在对应课程之后，不会再出现在课程之前。</div>`;
-    } else {
-      tip.classList.add("hidden");
-    }
-  }
-  p.innerHTML = `<strong style="font-size:11px;color:#6875aa">✧ 识别结果预览（${source}）</strong>
-    ${parsedDraft.map(t => `<div class="preview-task"><span>${escapeHtml(t.title)}${t.notBefore ? `<span class="preview-constraint">不早于 ${String(t.notBefore).slice(11)}</span>` : ""}</span><small>${fmtCN(t.deadline)} · ${t.duration} 分钟 · ${t.priority}优先级</small></div>`).join("")}
-    <div class="preview-actions"><button class="secondary-button" id="cancelDraft">取消</button><button class="primary-button" id="confirmDraft">确认加入任务</button></div>`;
-  $("#cancelDraft").onclick = () => p.classList.add("hidden");
+  p.innerHTML = `<strong style="font-size:11px;color:#6875aa">✧ 我理解到 ${pendingActions.length} 个操作（${source}）</strong>
+    ${reply ? `<div class="cmd-reply">${escapeHtml(reply)}</div>` : ""}
+    ${pendingActions.map(a => `<div class="preview-task"><span>${escapeHtml(describeAction(a))}</span></div>`).join("")}
+    <div class="preview-actions"><button class="secondary-button" id="cancelDraft">取消</button><button class="primary-button" id="confirmDraft">执行</button></div>`;
+  $("#cancelDraft").onclick = () => { pendingActions = []; p.classList.add("hidden"); };
   $("#confirmDraft").onclick = () => {
-    parsedDraft.forEach(t => tasks.unshift({ ...t, id: uid("t"), done: false }));
-    persistTasks();
-    renderAll();
+    const linesOut = applyCommandActions(pendingActions);
+    const answer = pendingActions.filter(a => a.type === "query").map(q => answerQuery(q.what)).filter(Boolean).join("；");
+    pendingActions = [];
     $("#taskInput").value = "";
-    p.classList.add("hidden");
-    toast("任务已加入任务中心");
+    p.classList.remove("hidden");
+    p.innerHTML = `<strong style="font-size:11px;color:#2f8f6b">✓ 已执行</strong>
+      ${linesOut.map(l => `<div class="preview-task"><span>${escapeHtml(l)}</span></div>`).join("")}
+      ${answer ? `<div class="cmd-reply">${escapeHtml(answer)}</div>` : ""}
+      <div class="preview-actions"><button class="secondary-button" id="closeDraft">知道了</button></div>`;
+    $("#closeDraft").onclick = () => p.classList.add("hidden");
+    toast("已执行 " + linesOut.length + " 个操作");
   };
 });
 
@@ -1136,6 +1141,137 @@ function maybeShowInstallTip() {
   try { dismissed = localStorage.getItem("lifeflow_install_tip_off") === "1"; } catch (e) {}
   if (isStandalone || !isIOS || dismissed) return;
   setTimeout(() => tip.classList.remove("hidden"), 1600);
+}
+
+/* ---------- 统一自然语言指令 ---------- */
+const WEEK_CN = ["", "周一", "周二", "周三", "周四", "周五", "周六", "周日"];
+
+function findTaskByRef(ref) {
+  const r = String(ref || "").trim();
+  if (!r) return null;
+  const open = tasks.filter(t => !t.done);
+  let hit = open.find(t => t.title === r) ||
+            open.find(t => t.title.indexOf(r) !== -1 || r.indexOf(t.title) !== -1);
+  if (hit) return hit;
+  const keys = (r.match(/[\u4e00-\u9fa5]{2,}/g) || []);
+  return open.find(t => keys.some(k => t.title.indexOf(k) !== -1)) || null;
+}
+
+async function aiParseCommand(text) {
+  const list = tasks.filter(t => !t.done).slice(0, 20)
+    .map(t => `${t.id}|${t.title}|${t.deadline || "无截止"}`).join("\n") || "（无未完成任务）";
+  const courseLines = courses.slice()
+    .sort((a, b) => a.day - b.day || toMin(a.start) - toMin(b.start))
+    .map(c => `${WEEK_CN[c.day]} ${c.name} ${c.start}-${c.end}`).join("；") || "（无课程）";
+
+  const messages = [
+    { role: "system", content:
+      `你是 LifeFlow 的中文指令解析器。今天是 ${todayISO()}（${WEEK_CN[weekdayOf(todayISO())]}）。` +
+      "把用户的话转成 JSON 动作。可用 type：\n" +
+      'add_task：新增任务 {title, deadline(YYYY-MM-DD 或 ""), duration(分钟整数), priority("高"|"中"|"低"), category("学习"|"校园"|"生活"), notBefore(YYYY-MM-DD HH:MM 或 "")}\n' +
+      'complete_task / uncomplete_task：标记完成/未完成 {match:"任务关键词"}\n' +
+      'exclude_task / restore_task：移出/恢复【排程计划】但保留任务 {match:"任务关键词"}\n' +
+      'delete_task：从任务列表彻底删除 {match:"任务关键词"}\n' +
+      'update_task：修改任务 {match:"任务关键词", fields:{deadline?, duration?, priority?, notBefore?}}\n' +
+      'query：查询 {what:"today_schedule"|"remaining_tasks"|"free_time"}\n' +
+      "语义区分（重要）：用户说「取消/不想做/不做了/别安排/去掉」= 移出计划 → exclude_task；" +
+      "只有明确说「做完了/完成了」才用 complete_task。\n" +
+      "notBefore 必须是「YYYY-MM-DD HH:MM」完整格式；若说「某课之后/下课后」，从课表取该课结束时间+5分钟。\n" +
+      '只输出 JSON：{"reply":"一句简短中文回应","actions":[...]}。match 与任务列表对应；“明天/后天/下周一”换算成具体日期。不要解释。\n' +
+      `现有未完成任务：\n${list}\n我的课表：${courseLines}` },
+    { role: "user", content: text }
+  ];
+  const raw = await callDeepSeek(messages, { json: true, temperature: 0.15, maxTokens: 1500 });
+  const obj = JSON.parse(String(raw).replace(/```json|```/g, "").trim());
+  const actions = (Array.isArray(obj.actions) ? obj.actions : []).filter(a => a && a.type);
+  return { reply: String(obj.reply || "").trim(), actions };
+}
+
+function localParseCommand(text) {
+  const t = text.trim();
+  const actions = [];
+  if (/(做完了|已经完成|标记完成|搞定)/.test(t)) {
+    const m = t.replace(/把|将|帮我|已经|标记|设为|做完了|完成|搞定/g, "").trim();
+    if (m) actions.push({ type: "complete_task", match: m });
+  }
+  if (EXCLUDE_RE.test(t)) {
+    guessTasksFromText(t).forEach(h => actions.push({ type: "exclude_task", match: h.title }));
+  }
+  if (!actions.length) {
+    mockParse(t).forEach(d => actions.push({ type: "add_task", ...d }));
+  }
+  return { reply: "", actions };
+}
+
+function describeAction(a) {
+  const m = a.match || a.title || "";
+  switch (a.type) {
+    case "add_task": return `新增任务「${a.title}」${a.deadline ? `，截止 ${a.deadline}` : ""}${a.duration ? `，${a.duration} 分钟` : ""}${a.notBefore ? `，不早于 ${String(a.notBefore).slice(11)}` : ""}`;
+    case "complete_task": return `标记完成「${m}」`;
+    case "uncomplete_task": return `标记未完成「${m}」`;
+    case "exclude_task": return `移出计划「${m}」`;
+    case "restore_task": return `恢复计划「${m}」`;
+    case "delete_task": return `删除任务「${m}」`;
+    case "update_task": return `修改「${m}」：${Object.entries(a.fields || {}).map(([k, v]) => `${k}=${v}`).join("，")}`;
+    case "query": return `查询：${{ today_schedule: "今天的安排", remaining_tasks: "剩余任务", free_time: "空闲时间" }[a.what] || a.what}`;
+    default: return `未知操作 ${a.type}`;
+  }
+}
+
+function answerQuery(kind) {
+  const iso = todayISO();
+  if (kind === "today_schedule") {
+    const plan = buildPlan(iso, { limitHours: 6 });
+    return plan.map(p => `${toHHMM(p.s)}-${toHHMM(p.e)} ${p.title}`).join("；") || "今天还没有安排";
+  }
+  if (kind === "remaining_tasks") {
+    const open = pendingTasks();
+    return open.length ? `还有 ${open.length} 项：${open.map(t => t.title).join("、")}` : "没有未完成任务了";
+  }
+  if (kind === "free_time") {
+    const busy = courses.filter(c => c.day === weekdayOf(iso) && courseInWeek(c, currentWeek))
+      .reduce((sum, c) => sum + (toMin(c.end) - toMin(c.start)), 0);
+    return `今天空闲约 ${((21.5 * 60 - 8 * 60 - busy) / 60).toFixed(1)} 小时`;
+  }
+  return "";
+}
+
+function applyCommandActions(actions) {
+  const log = [];
+  actions.forEach(a => {
+    if (a.type === "add_task") {
+      tasks.unshift({
+        id: uid("t"), title: a.title || "新任务",
+        deadline: /^\d{4}-\d{2}-\d{2}$/.test(a.deadline || "") ? a.deadline : "",
+        duration: Math.max(5, Number(a.duration) || 60),
+        priority: ["高", "中", "低"].includes(a.priority) ? a.priority : "中",
+        category: ["学习", "校园", "生活"].includes(a.category) ? a.category : "学习",
+        notBefore: normalizeNotBefore(a.notBefore, todayISO()),
+        done: false, planSkip: false
+      });
+      log.push(describeAction(a));
+      return;
+    }
+    if (a.type === "query") { log.push(describeAction(a)); return; }
+    const task = findTaskByRef(a.match || a.title);
+    if (!task) { log.push(`未找到「${a.match || ""}」，已跳过`); return; }
+    if (a.type === "complete_task") task.done = true;
+    else if (a.type === "uncomplete_task") task.done = false;
+    else if (a.type === "exclude_task") task.planSkip = true;
+    else if (a.type === "restore_task") task.planSkip = false;
+    else if (a.type === "delete_task") { tasks = tasks.filter(x => x.id !== task.id); }
+    else if (a.type === "update_task") {
+      const f = a.fields || {};
+      if (/^\d{4}-\d{2}-\d{2}$/.test(f.deadline || "")) task.deadline = f.deadline;
+      if (f.duration) task.duration = Math.max(5, Number(f.duration) || task.duration);
+      if (["高", "中", "低"].includes(f.priority)) task.priority = f.priority;
+      if (f.notBefore !== undefined) task.notBefore = normalizeNotBefore(f.notBefore, todayISO());
+    }
+    log.push(describeAction({ ...a, match: task.title }));
+  });
+  persistTasks();
+  renderAll();
+  return log;
 }
 
 /* ---------- 手机端日历条 ---------- */
@@ -2168,7 +2304,7 @@ document.querySelectorAll("dialog").forEach(dlg => {
   try { LEGACY_KEYS.forEach(k => localStorage.removeItem(k)); } catch (e) {}
 })();
 
-const APP_VERSION = "2026-11-19 #w";
+const APP_VERSION = "2026-11-19 #x";
 (function stampVersion() {
   const f = $("#appFooter");
   if (f && !f.dataset.stamped) {

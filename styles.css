@@ -879,3 +879,6 @@ html[data-theme="dark"] .tt-hour span{color:#9a9aa2;background:var(--panel)}
 .restore-task{border:0;background:none;color:var(--accent);font-size:14px;padding:0 4px;line-height:1;transition:transform .2s var(--ease)}
 .restore-task:hover{transform:scale(1.2)}
 .task-row.skipped{opacity:.72}
+
+.cmd-reply{margin:8px 0 4px;padding:10px 12px;border-radius:10px;background:var(--accent-soft);
+  color:var(--sub);font-size:10.5px;line-height:1.65}

@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20261119w" />
+  <link rel="stylesheet" href="styles.css?v=20261119x" />
 </head>
 <body>
   <div class="app-shell">
@@ -145,7 +145,7 @@
 
       <section class="page" id="page-tasks">
         <div class="page-title-row"><div><div class="eyebrow">CAPTURE EVERYTHING</div><h1>任务中心</h1><p class="muted">把脑海里的事情放下来，LifeFlow 帮你理清优先级。</p></div><button class="primary-button" id="focusAddTask">＋ 添加任务</button></div>
-        <div class="panel capture-panel"><div class="capture-label"><span class="ai-orb tiny">✧</span><strong>用一句话告诉 LifeFlow</strong><span class="demo-label">AI 识别演示</span></div><div class="capture-input-row"><textarea id="taskInput" placeholder="例如：周五之前完成高数作业，预计需要 2 小时……"></textarea><button class="primary-button" id="parseTaskBtn">✧ 智能识别</button></div><div class="hint">支持写「工程制图课后去值班」「下午三点以后做」这类时间约束，规划时会自动避开课程时间。</div>
+        <div class="panel capture-panel"><div class="capture-label"><span class="ai-orb tiny">✧</span><strong>用一句话告诉 LifeFlow（可新增 / 完成 / 取消 / 查询）</strong><span class="demo-label">AI 识别演示</span></div><div class="capture-input-row"><textarea id="taskInput" placeholder="试试：&#10;· 明天下午三点前交英语作文，大概1小时，很重要&#10;· 把背单词标记完成&#10;· 晚上不想预习了，取消预习&#10;· 我今天还有什么安排"></textarea><button class="primary-button" id="parseTaskBtn">✧ 智能识别</button></div><div class="hint">支持写「工程制图课后去值班」「下午三点以后做」这类时间约束，规划时会自动避开课程时间。</div>
           <div class="constraint-tip hidden" id="constraintTip"></div>
           <div id="parsePreview" class="parse-preview hidden"></div></div>
         <div class="task-toolbar">
@@ -351,7 +351,7 @@
     </div>
   </form></dialog>
   <dialog id="courseDialog"><form method="dialog" id="courseForm" class="dialog-form"><div class="dialog-head"><div><h2 id="courseDialogTitle">添加课程</h2><p>填写课程基本信息</p></div><button type="button" class="close-dialog" data-close="self" title="关闭">×</button></div><label>课程名称</label><input class="field" id="courseName" required placeholder="例如：大学物理"/><div class="form-two"><div><label>星期</label><select class="field" id="courseDay"><option value="1">周一</option><option value="2">周二</option><option value="3">周三</option><option value="4">周四</option><option value="5">周五</option></select></div><div><label>地点</label><input class="field" id="courseRoom" placeholder="教学楼 2-101"/></div></div><div class="form-two"><div><label>开始时间</label><input class="field" type="time" id="courseStart" value="10:00"/></div><div><label>结束时间</label><input class="field" type="time" id="courseEnd" value="11:40"/></div></div><button class="primary-button full-button" value="default">保存课程</button></form></dialog>
-  <script src="i18n.js?v=20261119w"></script>
-  <script src="app.js?v=20261119w"></script>
+  <script src="i18n.js?v=20261119x"></script>
+  <script src="app.js?v=20261119x"></script>
 </body>
 </html>
