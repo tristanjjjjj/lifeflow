@@ -1837,6 +1837,80 @@ async function encourage(task) {
   }
 }
 
+/* ---------- 上下滑动切换工作区 ---------- */
+const PAGE_ORDER = ["dashboard", "timetable", "tasks", "planner", "insights"];
+let swipeLockUntil = 0;
+
+function currentPageKey() {
+  const active = document.querySelector(".page.active");
+  return active ? active.id.replace("page-", "") : "dashboard";
+}
+
+function canSwipeNow() {
+  if (Date.now() < swipeLockUntil) return false;
+  if (document.querySelector("dialog[open]")) return false;
+  const el = document.activeElement;
+  if (el && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName)) return false;
+  return true;
+}
+
+function stepPage(dir) {
+  const i = PAGE_ORDER.indexOf(currentPageKey());
+  const next = i + dir;
+  if (next < 0 || next >= PAGE_ORDER.length) return false;
+  swipeLockUntil = Date.now() + 650;
+  go(PAGE_ORDER[next]);
+  return true;
+}
+
+/* 触摸滑动（手机 / 触屏） */
+let touchStartY = 0, touchStartX = 0, touchTracking = false;
+document.addEventListener("touchstart", e => {
+  if (e.touches.length !== 1) { touchTracking = false; return; }
+  touchStartY = e.touches[0].clientY;
+  touchStartX = e.touches[0].clientX;
+  touchTracking = true;
+}, { passive: true });
+
+document.addEventListener("touchend", e => {
+  if (!touchTracking) return;
+  touchTracking = false;
+  if (!canSwipeNow()) return;
+  const t = e.changedTouches[0];
+  const dy = t.clientY - touchStartY;
+  const dx = t.clientX - touchStartX;
+  if (Math.abs(dy) < 90 || Math.abs(dy) < Math.abs(dx) * 1.6) return;
+  stepPage(dy < 0 ? 1 : -1);   // 上滑 → 下一个；下滑 → 上一个
+}, { passive: true });
+
+/* 触控板 / 滚轮：滚到边界后继续滚才翻页 */
+let wheelAcc = 0, wheelResetTimer = 0;
+document.addEventListener("wheel", e => {
+  if (!canSwipeNow()) return;
+  const doc = document.documentElement;
+  const atTop = window.scrollY <= 2;
+  const atBottom = window.scrollY + window.innerHeight >= doc.scrollHeight - 2;
+  const pushingDown = e.deltaY > 0 && atBottom;
+  const pushingUp = e.deltaY < 0 && atTop;
+  if (!pushingDown && !pushingUp) { wheelAcc = 0; return; }
+  wheelAcc += e.deltaY;
+  clearTimeout(wheelResetTimer);
+  wheelResetTimer = setTimeout(() => { wheelAcc = 0; }, 260);
+  if (Math.abs(wheelAcc) > 170) {
+    const dir = wheelAcc > 0 ? 1 : -1;
+    wheelAcc = 0;
+    stepPage(dir);
+  }
+}, { passive: true });
+
+/* 键盘：Alt + ↑/↓ */
+document.addEventListener("keydown", e => {
+  if (!e.altKey || (e.key !== "ArrowUp" && e.key !== "ArrowDown")) return;
+  if (!canSwipeNow()) return;
+  e.preventDefault();
+  stepPage(e.key === "ArrowDown" ? 1 : -1);
+});
+
 /* ---------- 语言切换 / 新用户引导 ---------- */
 function syncLangButton() {
   const btn = $("#langToggle");
@@ -1961,7 +2035,7 @@ document.querySelectorAll("dialog").forEach(dlg => {
   try { LEGACY_KEYS.forEach(k => localStorage.removeItem(k)); } catch (e) {}
 })();
 
-const APP_VERSION = "2026-11-19 #n";
+const APP_VERSION = "2026-11-19 #p";
 (function stampVersion() {
   const f = $("#appFooter");
   if (f && !f.dataset.stamped) {

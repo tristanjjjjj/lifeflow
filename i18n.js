@@ -149,6 +149,7 @@
     "真实完成率与专注时长": "Real completion and focus stats",
     "💡 想要智能识别？点右上角": "Tip: tap AI at the top right",
     "按钮填入自己的 API Key 即可（不填也能用本地规则）。": "to use your own API key. Without one, local rules still work.",
+    "↕ 上下滑动可切换工作区（电脑上：Alt + ↑ / ↓ 或触控板滚到底继续滚）": "↕ Swipe up/down to switch workspaces (desktop: Alt + ↑/↓, or keep scrolling at the edge)",
     "下次不再显示": "Don't show again",
     "开始使用": "Get started",
     "选择语言": "Language",
