@@ -82,7 +82,8 @@ function normalizeTasks(list) {
     duration: Number(t.duration) || 60,
     priority: ["高", "中", "低"].includes(t.priority) ? t.priority : "中",
     done: !!t.done,
-    category: t.category || "学习"
+    category: t.category || "学习",
+    notBefore: typeof t.notBefore === "string" ? t.notBefore : ""
   }));
 }
 function normalizeCourses(list) {
@@ -170,7 +171,7 @@ function renderTasks() {
       <input class="task-check" type="checkbox" data-check="${t.id}" ${t.done ? "checked" : ""} aria-label="完成任务">
       <div class="task-main">
         <strong>${escapeHtml(t.title)}</strong>
-        <p>截止：${fmtCN(t.deadline)}${overdue ? ' <span class="overdue-tag">已逾期</span>' : ""} · 预计 ${t.duration} 分钟 · ${escapeHtml(t.category)}</p>
+        <p>截止：${fmtCN(t.deadline)}${overdue ? ' <span class="overdue-tag">已逾期</span>' : ""} · 预计 ${t.duration} 分钟 · ${escapeHtml(t.category)}${t.notBefore ? ` · 不早于 ${String(t.notBefore).slice(11)}` : ""}</p>
       </div>
       <span class="task-priority ${t.priority === "中" ? "medium" : t.priority === "低" ? "low" : ""}">${t.priority}优先级</span>
       <button class="edit-task" data-edit="${t.id}" title="编辑">✎</button>
@@ -387,6 +388,41 @@ function courseConflict(c) {
   return courses.find(x => x.id !== c.id && x.day === c.day && toMin(c.start) < toMin(x.end) && toMin(c.end) > toMin(x.start));
 }
 
+/* ---------- 时间约束（不早于某时刻） ---------- */
+function earliestOf(task, iso) {
+  const raw = String(task.notBefore || "");
+  const m = raw.match(/^(\d{4}-\d{2}-\d{2})[ T](\d{1,2}:\d{2})/);
+  if (!m) return 0;
+  if (m[1] > iso) return Infinity;   // 约束在未来的日期
+  if (m[1] < iso) return 0;          // 约束已过期
+  return toMin(m[2].padStart(5, "0"));
+}
+
+function normalizeNotBefore(v, iso) {
+  if (!v) return "";
+  const s = String(v).trim();
+  let m = s.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{1,2}):(\d{2})/);
+  if (m) return `${m[1]}-${m[2]}-${m[3]} ${String(m[4]).padStart(2, "0")}:${m[5]}`;
+  m = s.match(/^(\d{1,2}):(\d{2})$/);
+  if (m) return `${iso} ${String(m[1]).padStart(2, "0")}:${m[2]}`;
+  return "";
+}
+
+/* 本地规则：从“某课之后”推断最早开始时间 */
+function inferNotBefore(text, iso) {
+  if (!/(课后|下课|上完课|课程结束|老师那之后)/.test(text)) return "";
+  const day = weekdayOf(iso);
+  const todays = courses.filter(c => c.day === day);
+  if (!todays.length) return "";
+  // 优先匹配标题里提到的课程名
+  const named = todays.find(c => text.indexOf(c.name) !== -1)
+    || todays.find(c => c.name.length >= 2 && text.indexOf(c.name.slice(0, 2)) !== -1 && text.indexOf(c.name.slice(0, 3)) !== -1);
+  const target = named || todays.slice().sort((a, b) => toMin(b.end) - toMin(a.end))[0];
+  if (!target) return "";
+  const mins = toMin(target.end) + 5;              // 下课后留 5 分钟
+  return `${iso} ${toHHMM(Math.min(mins, 22 * 60))}`;
+}
+
 /* ---------- 排程算法 ---------- */
 function freeSlots(dayIndex, windowStart = 8 * 60, windowEnd = 21 * 60 + 30) {
   const busy = courses.filter(c => c.day === dayIndex)
@@ -419,11 +455,19 @@ function buildPlan(iso, opts = {}) {
     let used = 0;
     queue.forEach(t => {
       if (used >= limitMinutes) return;
+      const nbStr = t.notBefore || inferNotBefore(t.title, iso);   // 兼容历史任务
+      const earliest = earliestOf({ notBefore: nbStr }, iso);
+      if (earliest === Infinity) return;             // 这一天还不能做
       const need = Math.min(Number(t.duration) || 60, limitMinutes - used, 180);
       for (const slot of slots) {
-        if (slot.e - slot.s < need + 10) continue;
-        const start = slot.s + 10;
-        items.push({ s: start, e: start + need, title: t.title, meta: `${need} 分钟 · ${t.priority}优先级 · 截止 ${fmtCN(t.deadline)}`, kind: "task", taskId: t.id });
+        const start = Math.max(slot.s + 10, earliest);   // 关键：不早于约束时间
+        if (slot.e - start < need) continue;
+        items.push({
+          s: start, e: start + need, title: t.title,
+          meta: `${need} 分钟 · ${t.priority}优先级 · 截止 ${fmtCN(t.deadline)}` +
+                (nbStr ? ` · 不早于 ${String(nbStr).slice(11)}` : ""),
+          kind: "task", taskId: t.id
+        });
         slot.s = start + need + 10;
         used += need;
         break;
@@ -651,7 +695,12 @@ function mockParse(text) {
   else if (/明天/.test(text)) deadline = plus(1);
   else if (/后天/.test(text)) deadline = plus(2);
   else if (/周五/.test(text)) deadline = "";
-  return [{ title: title.trim() || "新任务", deadline, duration: mins, priority, category: /社团|活动|报名/.test(text) ? "校园" : "学习" }];
+  const iso = todayISO();
+  return [{
+    title: title.trim() || "新任务", deadline, duration: mins, priority,
+    category: /社团|活动|值班|报名/.test(text) ? "校园" : "学习",
+    notBefore: inferNotBefore(text, iso)
+  }];
 }
 
 $("#parseTaskBtn")?.addEventListener("click", async () => {
@@ -908,11 +957,20 @@ function extractJsonArray(text) {
 
 async function aiParseTask(text) {
   const today = todayISO();
+  const dayNames = ["", "周一", "周二", "周三", "周四", "周五", "周六", "周日"];
+  const courseLines = courses.slice()
+    .sort((a, b) => a.day - b.day || toMin(a.start) - toMin(b.start))
+    .map(c => `${dayNames[c.day] || ""} ${c.name} ${c.start}-${c.end}`)
+    .join("；");
   const messages = [
     { role: "system", content:
       `你是任务解析助手。把用户的一句话转换成 JSON。今天是 ${today}。` +
-      `只输出 JSON 对象，格式：{"tasks":[{"title":"","deadline":"YYYY-MM-DD 或空字符串","duration":分钟整数,"priority":"高|中|低","category":"学习|校园|生活"}]}` +
-      `。没有明确日期时 deadline 用空字符串；没有时长时 duration 用 60。不要输出任何解释。` },
+      `只输出 JSON 对象，格式：{"tasks":[{"title":"","deadline":"YYYY-MM-DD 或空字符串","duration":分钟整数,"priority":"高|中|低","category":"学习|校园|生活","notBefore":"YYYY-MM-DD HH:MM 或空字符串"}]}` +
+      `。没有明确日期时 deadline 用空字符串；没有时长时 duration 用 60。` +
+      `如果任务提到“某课之后 / 下课后 / 上完某课去…”，请把 notBefore 设为那节课结束后的时间（留 5 分钟），` +
+      `并优先匹配下面课表里同名的课程；匹配不到就用当天最晚的一门课。` +
+      (courseLines ? `已知课表：${courseLines}。` : "当前没有课程数据。") +
+      `不要输出任何解释。` },
     { role: "user", content: text }
   ];
   const raw = await callDeepSeek(messages, { json: true, temperature: 0.2, maxTokens: 1200 });
@@ -925,7 +983,8 @@ async function aiParseTask(text) {
     deadline: /^\d{4}-\d{2}-\d{2}$/.test(t.deadline || "") ? t.deadline : "",
     duration: Math.max(5, Number(t.duration) || 60),
     priority: ["高", "中", "低"].includes(t.priority) ? t.priority : "中",
-    category: ["学习", "校园", "生活"].includes(t.category) ? t.category : "学习"
+    category: ["学习", "校园", "生活"].includes(t.category) ? t.category : "学习",
+    notBefore: normalizeNotBefore(t.notBefore, today)
   }));
 }
 
@@ -1881,7 +1940,7 @@ document.querySelectorAll("dialog").forEach(dlg => {
   try { LEGACY_KEYS.forEach(k => localStorage.removeItem(k)); } catch (e) {}
 })();
 
-const APP_VERSION = "2026-11-18 #j";
+const APP_VERSION = "2026-11-19 #k";
 (function stampVersion() {
   const f = $("#appFooter");
   if (f && !f.dataset.stamped) {
