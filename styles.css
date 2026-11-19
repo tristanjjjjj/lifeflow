@@ -816,3 +816,33 @@ dialog::backdrop{background:rgba(20,24,40,.45);backdrop-filter:blur(4px)}
   html[data-theme="dark"] .m-calendar{background:linear-gradient(150deg,#2f6f5c,#255446)}
   html[data-theme="light"] .stat-card:nth-child(1){--m-card:#f2ecfd}
 }
+
+/* ---------- 深色模式：课表文字对比度修复 ---------- */
+@media (prefers-color-scheme: dark){
+  .course-block{background:color-mix(in srgb,#7791ec 34%,var(--panel));
+    border-left-color:#a8bcff;color:#eef2ff}
+  .course-block.pink{background:color-mix(in srgb,#e8a0b1 32%,var(--panel));
+    border-color:#f2b9c6;color:#ffeef2}
+  .course-block.green{background:color-mix(in srgb,#70c3a0 32%,var(--panel));
+    border-color:#93dcc0;color:#e6fff5}
+  .course-block strong{color:#ffffff}
+  .cb-time{color:#dfe6ff;opacity:.95}
+  .cb-room{color:#cfd8f5;opacity:.9}
+  .course-weeks{color:#c3cdea;opacity:.85}
+  .tt-head{color:#c9c9cf}
+  .tt-hour span{color:#9a9aa2;background:var(--panel)}
+  .course-del{color:#c9c9cf}
+  .course-del:hover{background:rgba(255,69,58,.2);color:#ff8f88}
+}
+html[data-theme="dark"] .course-block{background:color-mix(in srgb,#7791ec 34%,var(--panel));
+  border-left-color:#a8bcff;color:#eef2ff}
+html[data-theme="dark"] .course-block.pink{background:color-mix(in srgb,#e8a0b1 32%,var(--panel));
+  border-color:#f2b9c6;color:#ffeef2}
+html[data-theme="dark"] .course-block.green{background:color-mix(in srgb,#70c3a0 32%,var(--panel));
+  border-color:#93dcc0;color:#e6fff5}
+html[data-theme="dark"] .course-block strong{color:#ffffff}
+html[data-theme="dark"] .cb-time{color:#dfe6ff;opacity:.95}
+html[data-theme="dark"] .cb-room{color:#cfd8f5;opacity:.9}
+html[data-theme="dark"] .course-weeks{color:#c3cdea;opacity:.85}
+html[data-theme="dark"] .tt-head{color:#c9c9cf}
+html[data-theme="dark"] .tt-hour span{color:#9a9aa2;background:var(--panel)}
