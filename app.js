@@ -1221,6 +1221,7 @@ function closeAiDrawer() { $("#aiDrawer")?.classList.add("hidden"); }
 
 $("#aiChatBtn")?.addEventListener("click", openAiDrawer);
 $("#aiChatTopBtn")?.addEventListener("click", openAiDrawer);
+$("#aiFab")?.addEventListener("click", openAiDrawer);
 $("#aiDrawerClose")?.addEventListener("click", closeAiDrawer);
 $("#aiSend")?.addEventListener("click", () => chatSend($("#aiInput").value));
 $("#aiInput")?.addEventListener("keydown", e => {
@@ -2392,7 +2393,7 @@ document.querySelectorAll("dialog").forEach(dlg => {
   try { LEGACY_KEYS.forEach(k => localStorage.removeItem(k)); } catch (e) {}
 })();
 
-const APP_VERSION = "2026-11-20 #a";
+const APP_VERSION = "2026-11-20 #b";
 (function stampVersion() {
   const f = $("#appFooter");
   if (f && !f.dataset.stamped) {
