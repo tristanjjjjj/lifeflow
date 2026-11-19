@@ -134,7 +134,9 @@ function go(page) {
   if (page === "planner") renderPlanFromState();
 }
 $$(".nav-item").forEach(b => b.addEventListener("click", () => go(b.dataset.page)));
-$$(".mnav-item").forEach(b => b.addEventListener("click", () => go(b.dataset.page)));
+$$(".mnav-item").forEach(b => {
+  if (b.dataset.page) b.addEventListener("click", () => go(b.dataset.page));
+});
 $$("[data-goto]").forEach(b => b.addEventListener("click", () => go(b.dataset.goto)));
 
 /* ---------- 任务列表 ---------- */
@@ -1214,14 +1216,19 @@ function openAiDrawer() {
   if (!chatLog.length) {
     chatBubble("ai", "你好，我是 LifeFlow 助手。\n可以直接用自然语言让我帮你调整计划，例如：\n· 工程制图之后想校园跑\n· 晚上不想预习了\n· 把高数作业推迟到后天\n· 我今天还有什么安排");
   }
+  $("#mnavAi")?.classList.add("active");
   const input = $("#aiInput");
   if (input) setTimeout(() => input.focus(), 120);
 }
-function closeAiDrawer() { $("#aiDrawer")?.classList.add("hidden"); }
+function closeAiDrawer() {
+  $("#aiDrawer")?.classList.add("hidden");
+  $("#mnavAi")?.classList.remove("active");
+  updateActiveByScroll();
+}
 
 $("#aiChatBtn")?.addEventListener("click", openAiDrawer);
 $("#aiChatTopBtn")?.addEventListener("click", openAiDrawer);
-$("#aiFab")?.addEventListener("click", openAiDrawer);
+$("#mnavAi")?.addEventListener("click", openAiDrawer);
 $("#aiDrawerClose")?.addEventListener("click", closeAiDrawer);
 $("#aiSend")?.addEventListener("click", () => chatSend($("#aiInput").value));
 $("#aiInput")?.addEventListener("keydown", e => {
@@ -2393,7 +2400,7 @@ document.querySelectorAll("dialog").forEach(dlg => {
   try { LEGACY_KEYS.forEach(k => localStorage.removeItem(k)); } catch (e) {}
 })();
 
-const APP_VERSION = "2026-11-20 #b";
+const APP_VERSION = "2026-11-20 #c";
 (function stampVersion() {
   const f = $("#appFooter");
   if (f && !f.dataset.stamped) {
