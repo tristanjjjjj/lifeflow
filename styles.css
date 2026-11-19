@@ -115,7 +115,6 @@ button{cursor:pointer}
 .page{display:block;padding-top:4px;scroll-margin-top:28px}
 .page + .page{margin-top:72px;padding-top:64px;border-top:1px solid var(--line-soft)}
 .page.active{display:block}
-.page.active{display:block}
 @keyframes pageIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 .welcome-row,.page-title-row{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:30px}
 .eyebrow{margin-bottom:11px}
