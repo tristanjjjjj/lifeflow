@@ -846,3 +846,30 @@ html[data-theme="dark"] .cb-room{color:#cfd8f5;opacity:.9}
 html[data-theme="dark"] .course-weeks{color:#c3cdea;opacity:.85}
 html[data-theme="dark"] .tt-head{color:#c9c9cf}
 html[data-theme="dark"] .tt-hour span{color:#9a9aa2;background:var(--panel)}
+
+/* ---------- PWA：安装提示与独立运行适配 ---------- */
+.install-tip{position:fixed;left:12px;right:12px;bottom:calc(88px + env(safe-area-inset-bottom));z-index:45;
+  display:flex;gap:11px;align-items:flex-start;padding:14px 15px;border-radius:16px;
+  background:color-mix(in srgb,var(--panel) 94%,transparent);
+  -webkit-backdrop-filter:saturate(180%) blur(18px);backdrop-filter:saturate(180%) blur(18px);
+  border:1px solid var(--line-soft);box-shadow:0 16px 40px rgba(0,0,0,.18);
+  animation:tipIn .32s var(--ease)}
+.install-tip .it-icon{width:34px;height:34px;border-radius:11px;flex:0 0 auto;
+  background:linear-gradient(145deg,var(--accent),var(--accent-2));color:#fff;display:grid;place-items:center;font-size:17px}
+.install-tip .it-body{flex:1;min-width:0}
+.install-tip strong{display:block;font-size:12px;font-weight:500;margin-bottom:4px}
+.install-tip p{margin:0;font-size:10.5px;color:var(--sub);line-height:1.65}
+.install-tip p b{color:var(--accent);font-weight:500}
+.install-tip .it-close{border:0;background:none;color:var(--faint);font-size:17px;line-height:1;padding:2px 4px}
+
+/* iOS 独立模式（从主屏幕打开）适配状态栏刘海 */
+@media (display-mode: standalone){
+  body{padding-top:env(safe-area-inset-top)}
+  .topbar{padding-top:calc(4px + env(safe-area-inset-top))}
+  .sidebar{padding-top:calc(30px + env(safe-area-inset-top))}
+}
+/* iOS 上禁止长按弹出菜单，更像原生 App */
+@supports (-webkit-touch-callout: none){
+  .nav-item,.mnav-item,.primary-button,.secondary-button,.stat-card,.task-row,.course-block{
+    -webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+}

@@ -1033,6 +1033,27 @@ async function aiSummary() {
   return callDeepSeek(messages, { temperature: 0.6, maxTokens: 600 });
 }
 
+/* ---------- PWA：离线缓存与安装引导 ---------- */
+function registerServiceWorker() {
+  if (!("serviceWorker" in navigator)) return;
+  if (location.protocol !== "https:" && location.hostname !== "localhost" && location.hostname !== "127.0.0.1") return;
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("service-worker.js").catch(() => {});
+  });
+}
+
+function maybeShowInstallTip() {
+  const tip = $("#installTip");
+  if (!tip) return;
+  const isStandalone = window.navigator.standalone === true ||
+    (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches);
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  let dismissed = false;
+  try { dismissed = localStorage.getItem("lifeflow_install_tip_off") === "1"; } catch (e) {}
+  if (isStandalone || !isIOS || dismissed) return;
+  setTimeout(() => tip.classList.remove("hidden"), 1600);
+}
+
 /* ---------- 手机端日历条 ---------- */
 const M_MONTHS_EN = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 function renderMobileCalendar() {
@@ -1995,6 +2016,11 @@ $("#introStart")?.addEventListener("click", () => {
   } catch (e) {}
   closeIntro();
 });
+$("#installTipClose")?.addEventListener("click", () => {
+  $("#installTip")?.classList.add("hidden");
+  try { localStorage.setItem("lifeflow_install_tip_off", "1"); } catch (e) {}
+});
+
 $("#mBellBtn")?.addEventListener("click", () => {
   const n = pendingTasks().length;
   const todayCourses = courses.filter(c => c.day === weekdayOf(todayISO()) && courseInWeek(c, currentWeek)).length;
@@ -2058,7 +2084,7 @@ document.querySelectorAll("dialog").forEach(dlg => {
   try { LEGACY_KEYS.forEach(k => localStorage.removeItem(k)); } catch (e) {}
 })();
 
-const APP_VERSION = "2026-11-19 #u";
+const APP_VERSION = "2026-11-19 #v";
 (function stampVersion() {
   const f = $("#appFooter");
   if (f && !f.dataset.stamped) {
@@ -2076,6 +2102,8 @@ const APP_VERSION = "2026-11-19 #u";
   if (planDate) planDate.value = todayISO();
   renderAll();
   renderMobileCalendar();
+  registerServiceWorker();
+  maybeShowInstallTip();
   updateAiUi();
   renderName();
   syncLangButton();
