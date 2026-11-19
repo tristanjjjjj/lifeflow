@@ -115,6 +115,7 @@ function persistCourses() { writeJSON(KEYS.courses, courses); }
 const PAGE_NAMES = { dashboard: "总览", timetable: "我的课表", tasks: "任务中心", planner: "AI 智能规划", insights: "数据统计" };
 function setActiveNav(page) {
   $$(".nav-item").forEach(n => n.classList.toggle("active", n.dataset.page === page));
+  $$(".mnav-item").forEach(n => n.classList.toggle("active", n.dataset.page === page));
   $$(".page").forEach(p => p.classList.toggle("active", p.id === `page-${page}`));
   const crumb = $("#crumb");
   if (crumb) crumb.textContent = PAGE_NAMES[page] || "总览";
@@ -132,6 +133,7 @@ function go(page) {
   if (page === "planner") renderPlanFromState();
 }
 $$(".nav-item").forEach(b => b.addEventListener("click", () => go(b.dataset.page)));
+$$(".mnav-item").forEach(b => b.addEventListener("click", () => go(b.dataset.page)));
 $$("[data-goto]").forEach(b => b.addEventListener("click", () => go(b.dataset.goto)));
 
 /* ---------- 任务列表 ---------- */
@@ -2016,7 +2018,7 @@ document.querySelectorAll("dialog").forEach(dlg => {
   try { LEGACY_KEYS.forEach(k => localStorage.removeItem(k)); } catch (e) {}
 })();
 
-const APP_VERSION = "2026-11-19 #r";
+const APP_VERSION = "2026-11-19 #s";
 (function stampVersion() {
   const f = $("#appFooter");
   if (f && !f.dataset.stamped) {
