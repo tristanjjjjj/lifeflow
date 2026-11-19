@@ -181,6 +181,8 @@
     "仅保存在本机浏览器，用于个性化称呼": "Stored locally, used for greetings",
     "你的名字 / 昵称": "Your name / nickname",
     "取消": "Cancel",
+    "已移出计划": "Removed from plan",
+    "恢复到计划": "Restore to plan",
     "保存": "Save",
     "AI 连接设置": "AI connection",
     "填入 DeepSeek API Key 后，任务识别与小结由模型生成": "Add your DeepSeek API key to use a real model",

@@ -83,7 +83,8 @@ function normalizeTasks(list) {
     priority: ["高", "中", "低"].includes(t.priority) ? t.priority : "中",
     done: !!t.done,
     category: t.category || "学习",
-    notBefore: typeof t.notBefore === "string" ? t.notBefore : ""
+    notBefore: typeof t.notBefore === "string" ? t.notBefore : "",
+    planSkip: !!t.planSkip
   }));
 }
 function normalizeCourses(list) {
@@ -177,13 +178,14 @@ function renderTasks() {
 
   list.innerHTML = visible.map(t => {
     const overdue = t.deadline && t.deadline < todayISO() && !t.done;
-    return `<div class="task-row ${t.done ? "completed" : ""} ${overdue ? "overdue" : ""}">
+    return `<div class="task-row ${t.done ? "completed" : ""} ${overdue ? "overdue" : ""} ${t.planSkip ? "skipped" : ""}">
       <input class="task-check" type="checkbox" data-check="${t.id}" ${t.done ? "checked" : ""} aria-label="完成任务">
       <div class="task-main">
         <strong>${escapeHtml(t.title)}</strong>
-        <p>截止：${fmtCN(t.deadline)}${overdue ? ' <span class="overdue-tag">已逾期</span>' : ""} · 预计 ${t.duration} 分钟 · ${escapeHtml(t.category)}${t.notBefore ? ` · 不早于 ${String(t.notBefore).slice(11)}` : ""}</p>
+        <p>截止：${fmtCN(t.deadline)}${overdue ? ' <span class="overdue-tag">已逾期</span>' : ""} · 预计 ${t.duration} 分钟 · ${escapeHtml(t.category)}${t.notBefore ? ` · 不早于 ${String(t.notBefore).slice(11)}` : ""}${t.planSkip ? ' <span class="skip-tag">已移出计划</span>' : ""}</p>
       </div>
       <span class="task-priority ${t.priority === "中" ? "medium" : t.priority === "低" ? "low" : ""}">${t.priority}优先级</span>
+      ${t.planSkip ? `<button class="restore-task" data-restore="${t.id}" title="恢复到计划">↩</button>` : ""}
       <button class="edit-task" data-edit="${t.id}" title="编辑">✎</button>
       <button class="delete-task" data-delete="${t.id}" title="删除">×</button>
     </div>`;
@@ -204,6 +206,14 @@ function renderTasks() {
     persistTasks();
     renderAll();
     toast("任务已删除");
+  }));
+  $$("[data-restore]").forEach(b => b.addEventListener("click", () => {
+    const t = tasks.find(x => x.id === b.dataset.restore);
+    if (!t) return;
+    t.planSkip = false;
+    persistTasks();
+    renderAll();
+    toast(`「${t.title}」已恢复参与排程`);
   }));
   $$("[data-edit]").forEach(b => b.addEventListener("click", () => openTaskDialog(b.dataset.edit)));
   renderPriority();
@@ -463,7 +473,7 @@ function buildPlan(iso, opts = {}) {
 
   if (includeTasks) {
     const slots = freeSlots(day).map(s => ({ ...s }));
-    const queue = sortTasks(pendingTasks());
+    const queue = sortTasks(pendingTasks().filter(t => !t.planSkip));
     let used = 0;
     queue.forEach(t => {
       if (used >= limitMinutes) return;
@@ -874,29 +884,103 @@ $("#acceptPlan")?.addEventListener("click", () => {
   toast("计划已保存");
 });
 
-$("#rescheduleBtn")?.addEventListener("click", () => {
+$("#rescheduleBtn")?.addEventListener("click", async () => {
   const text = $("#rescheduleInput").value.trim();
   if (!text) { toast("请描述发生了什么变化"); return; }
+
+  const btn = $("#rescheduleBtn");
   const iso = $("#planDate").value || todayISO();
   const limitHours = Number(String($("#dailyLimit").value).replace(/[^\d.]/g, "")) || 6;
+
+  // ① 先识别“移出/恢复计划”的意图
+  let excluded = [], restored = [];
+  const wantExclude = EXCLUDE_RE.test(text);
+  const wantRestore = RESTORE_RE.test(text);
+
+  if (wantExclude || wantRestore) {
+    let targets = guessTasksFromText(text);
+    let byAI = false;
+    if (!targets.length && aiKey()) {
+      btn.disabled = true; btn.textContent = "识别中…";
+      try {
+        const r = await aiRescheduleIntent(text);
+        if (wantExclude) targets = r.exclude;
+        if (wantRestore) targets = r.restore;
+        byAI = true;
+      } catch (e) { /* 忽略，走普通重排 */ }
+      btn.disabled = false; btn.textContent = "重新规划";
+    }
+    if (wantExclude && !wantRestore) {
+      excluded = targets;
+      excluded.forEach(t => { t.planSkip = true; });
+    } else if (wantRestore) {
+      restored = targets;
+      restored.forEach(t => { t.planSkip = false; });
+    }
+    if (excluded.length || restored.length) persistTasks();
+    targets._byAI = byAI;
+  }
+
+  // ② 重新排程
   const before = savedPlan && savedPlan.date === iso ? savedPlan.items : buildPlan(iso, { limitHours });
   const beforeIds = new Set(before.filter(i => i.kind === "task").map(i => i.taskId));
   const plan = buildPlan(iso, { includeTasks: true, includeBreaks: true, limitHours });
   savedPlan = { date: iso, items: plan, savedAt: new Date().toISOString() };
   writeJSON(KEYS.plan, savedPlan);
   const afterIds = new Set(plan.filter(i => i.kind === "task").map(i => i.taskId));
-  const moved = plan.filter(i => i.kind === "task" && !beforeIds.has(i.taskId)).length;
   const kept = [...afterIds].filter(id => beforeIds.has(id)).length;
+  const moved = [...afterIds].filter(id => !beforeIds.has(id)).length;
+
+  // ③ 生成说明
+  const lines = [`<strong>✧ 已按最新情况重新排程</strong>`];
+  lines.push(`识别到你的说明：${escapeHtml(text.slice(0, 50))}${text.length > 50 ? "…" : ""}`);
+  if (excluded.length) {
+    lines.push(`<b style="color:#b25f2b">已移出计划：</b>${excluded.map(t => escapeHtml(t.title)).join("、")}（任务仍保留在任务中心，点 ↩ 可恢复）`);
+  }
+  if (restored.length) {
+    lines.push(`<b style="color:#2f8f6b">已恢复计划：</b>${restored.map(t => escapeHtml(t.title)).join("、")}`);
+  }
+  if ((wantExclude || wantRestore) && !excluded.length && !restored.length) {
+    lines.push(`<span style="color:#c0392b">没有匹配到具体任务</span>，请把任务名写进描述里，例如“取消预习”或“不要安排背单词”。`);
+  }
+  lines.push(`新的日程共安排 <b>${afterIds.size}</b> 项任务，其中 ${kept} 项保持原时段，${moved} 项重新安排。`);
+
   const box = $("#rescheduleResult");
   box.classList.remove("hidden");
-  box.innerHTML = `<strong>✧ 已按最新情况重新排程</strong><br>
-    识别到变化：${escapeHtml(text.slice(0, 40))}${text.length > 40 ? "…" : ""}<br>
-    新的日程共安排 <b>${afterIds.size}</b> 项任务，其中 ${kept} 项保持原时段，${moved} 项被重新安排。<br><br>
-    <strong>下一步：</strong>可到「AI 智能规划」查看并确认新的计划。`;
+  box.innerHTML = lines.join("<br>");
   renderPlan(plan, true);
   renderDashboard();
-  toast("已生成新的日程安排");
+  toast(excluded.length ? `已移出 ${excluded.length} 项任务` : "已生成新的日程安排");
 });
+
+/* ---------- 动态调整：意图识别 ---------- */
+function chineseKeys(title) {
+  return (String(title).match(/[\u4e00-\u9fa5]{2,}/g) || []);
+}
+
+function guessTasksFromText(text) {
+  return pendingTasks().filter(t => {
+    if (text.indexOf(t.title) !== -1) return true;
+    return chineseKeys(t.title).some(k => text.indexOf(k) !== -1);
+  });
+}
+
+const EXCLUDE_RE = /(取消|不想|不做了|不做了|去掉|删掉|删除|别安排|移出|不排|不用做|放弃|跳过)/;
+const RESTORE_RE = /(恢复|加回来|重新安排|再加|别取消)/;
+
+async function aiRescheduleIntent(text) {
+  const list = pendingTasks().map(t => `${t.id}:${t.title}`).join("；") || "（无）";
+  const messages = [
+    { role: "system", content:
+      "你是计划调整助手。根据用户的话判断要「移出计划」还是「恢复计划」的任务。" +
+      `只输出 JSON：{"exclude":["任务id"],"restore":["任务id"]}。可用任务：${list}。不要解释。` },
+    { role: "user", content: text }
+  ];
+  const raw = await callDeepSeek(messages, { json: true, temperature: 0.1, maxTokens: 700 });
+  const obj = JSON.parse(String(raw).replace(/```json|```/g, "").trim());
+  const pick = ids => (Array.isArray(ids) ? ids : []).map(id => tasks.find(t => t.id === String(id))).filter(Boolean);
+  return { exclude: pick(obj.exclude), restore: pick(obj.restore) };
+}
 
 /* ---------- DeepSeek 接入（Key 仅存本机） ---------- */
 const AI_KEY_STORE = "lifeflow_ai_key";
@@ -2084,7 +2168,7 @@ document.querySelectorAll("dialog").forEach(dlg => {
   try { LEGACY_KEYS.forEach(k => localStorage.removeItem(k)); } catch (e) {}
 })();
 
-const APP_VERSION = "2026-11-19 #v";
+const APP_VERSION = "2026-11-19 #w";
 (function stampVersion() {
   const f = $("#appFooter");
   if (f && !f.dataset.stamped) {

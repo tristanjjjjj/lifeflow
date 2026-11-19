@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20261119v" />
+  <link rel="stylesheet" href="styles.css?v=20261119w" />
 </head>
 <body>
   <div class="app-shell">
@@ -176,7 +176,7 @@
           </div>
           <div class="panel plan-result-panel"><div class="panel-heading"><div><h2>计划预览</h2><p id="planSubtitle">等待生成你的今日安排</p></div><span class="tag tag-green" id="planStatus">待生成</span></div><div id="planResult" class="plan-result empty-state"><div class="empty-icon">✧</div><strong>你的时间，值得认真安排</strong><p>点击左侧按钮，生成一份清晰、可执行的日程建议。</p></div><button class="secondary-button full-button hidden" id="acceptPlan">确认并保存计划 →</button></div>
         </div>
-        <div class="panel reschedule-panel"><div class="panel-heading"><div><h2>计划动态调整</h2><p>临时有事或任务没完成？试试重新安排。</p></div><span class="tag tag-purple">核心体验</span></div><div class="reschedule-row"><input class="field" id="rescheduleInput" placeholder="例如：下午临时有事，高数作业没完成……"/><button class="secondary-button" id="rescheduleBtn">重新规划</button></div><div id="rescheduleResult" class="reschedule-result hidden"></div></div>
+        <div class="panel reschedule-panel"><div class="panel-heading"><div><h2>计划动态调整</h2><p>临时有事或任务没完成？试试重新安排。</p></div><span class="tag tag-purple">核心体验</span></div><div class="reschedule-row"><input class="field" id="rescheduleInput" placeholder="例如：晚上不想预习了，把预习任务取消 / 把高数作业推迟"/><button class="secondary-button" id="rescheduleBtn">重新规划</button></div><div id="rescheduleResult" class="reschedule-result hidden"></div></div>
       </section>
 
       <section class="page" id="page-insights">
@@ -351,7 +351,7 @@
     </div>
   </form></dialog>
   <dialog id="courseDialog"><form method="dialog" id="courseForm" class="dialog-form"><div class="dialog-head"><div><h2 id="courseDialogTitle">添加课程</h2><p>填写课程基本信息</p></div><button type="button" class="close-dialog" data-close="self" title="关闭">×</button></div><label>课程名称</label><input class="field" id="courseName" required placeholder="例如：大学物理"/><div class="form-two"><div><label>星期</label><select class="field" id="courseDay"><option value="1">周一</option><option value="2">周二</option><option value="3">周三</option><option value="4">周四</option><option value="5">周五</option></select></div><div><label>地点</label><input class="field" id="courseRoom" placeholder="教学楼 2-101"/></div></div><div class="form-two"><div><label>开始时间</label><input class="field" type="time" id="courseStart" value="10:00"/></div><div><label>结束时间</label><input class="field" type="time" id="courseEnd" value="11:40"/></div></div><button class="primary-button full-button" value="default">保存课程</button></form></dialog>
-  <script src="i18n.js?v=20261119v"></script>
-  <script src="app.js?v=20261119v"></script>
+  <script src="i18n.js?v=20261119w"></script>
+  <script src="app.js?v=20261119w"></script>
 </body>
 </html>

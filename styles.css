@@ -873,3 +873,9 @@ html[data-theme="dark"] .tt-hour span{color:#9a9aa2;background:var(--panel)}
   .nav-item,.mnav-item,.primary-button,.secondary-button,.stat-card,.task-row,.course-block{
     -webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
 }
+
+/* 任务移出计划 */
+.skip-tag{display:inline-block;color:var(--orange);background:var(--orange-soft);border-radius:4px;padding:1px 6px;font-size:8.5px;margin-left:5px}
+.restore-task{border:0;background:none;color:var(--accent);font-size:14px;padding:0 4px;line-height:1;transition:transform .2s var(--ease)}
+.restore-task:hover{transform:scale(1.2)}
+.task-row.skipped{opacity:.72}
