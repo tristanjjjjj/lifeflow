@@ -1033,6 +1033,36 @@ async function aiSummary() {
   return callDeepSeek(messages, { temperature: 0.6, maxTokens: 600 });
 }
 
+/* ---------- 手机端日历条 ---------- */
+const M_MONTHS_EN = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+function renderMobileCalendar() {
+  const box = $("#mCalDays");
+  if (!box) return;
+  const now = new Date();
+  const monLabel = $("#mCalMonth");
+  if (monLabel) monLabel.textContent = M_MONTHS_EN[now.getMonth()];
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));   // 本周一
+  const names = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  let html = "";
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    const isToday = d.toDateString() === now.toDateString();
+    html += `<button class="m-day${isToday ? " today" : ""}" data-date="${d.toISOString().slice(0,10)}">
+      <span>${names[d.getDay()]}</span><b>${d.getDate()}</b>
+    </button>`;
+  }
+  box.innerHTML = html;
+  box.querySelectorAll(".m-day").forEach(btn => {
+    btn.addEventListener("click", () => {
+      box.querySelectorAll(".m-day").forEach(b => b.classList.remove("today"));
+      btn.classList.add("today");
+      go("timetable");
+    });
+  });
+}
+
 /* ---------- 数据备份 ---------- */
 function exportBackup() {
   const payload = {
@@ -1933,6 +1963,10 @@ function renderName() {
   if (greet) greet.textContent = name;
   const pn = $("#profileName");
   if (pn) pn.textContent = name;
+  const mh = $("#mHeroName");
+  if (mh) mh.textContent = name;
+  const mav = $("#mHeroAvatar");
+  if (mav) mav.textContent = initial;
   document.querySelectorAll(".avatar").forEach(a => {
     if (a.id !== "topAvatarBtn") return;
     a.textContent = initial;
@@ -1961,6 +1995,12 @@ $("#introStart")?.addEventListener("click", () => {
   } catch (e) {}
   closeIntro();
 });
+$("#mBellBtn")?.addEventListener("click", () => {
+  const n = pendingTasks().length;
+  const todayCourses = courses.filter(c => c.day === weekdayOf(todayISO()) && courseInWeek(c, currentWeek)).length;
+  toast(`今天 ${todayCourses} 节课，${n} 项待办`);
+});
+
 $("#helpBtn")?.addEventListener("click", openIntro);
 
 function openProfile() {
@@ -2018,7 +2058,7 @@ document.querySelectorAll("dialog").forEach(dlg => {
   try { LEGACY_KEYS.forEach(k => localStorage.removeItem(k)); } catch (e) {}
 })();
 
-const APP_VERSION = "2026-11-19 #s";
+const APP_VERSION = "2026-11-19 #t";
 (function stampVersion() {
   const f = $("#appFooter");
   if (f && !f.dataset.stamped) {
@@ -2035,6 +2075,7 @@ const APP_VERSION = "2026-11-19 #s";
   const planDate = $("#planDate");
   if (planDate) planDate.value = todayISO();
   renderAll();
+  renderMobileCalendar();
   updateAiUi();
   renderName();
   syncLangButton();

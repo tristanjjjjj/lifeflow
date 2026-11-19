@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20261119s" />
+  <link rel="stylesheet" href="styles.css?v=20261119t" />
 </head>
 <body>
   <div class="app-shell">
@@ -55,6 +55,20 @@
       </header>
 
       <section class="page active" id="page-dashboard">
+        <div class="m-hero">
+          <div class="m-hero-top">
+            <div class="m-avatar" id="mHeroAvatar">D</div>
+            <div class="m-hello">
+              <strong>Hello, <span id="mHeroName">dear student</span>!</strong>
+              <span>Let's get this done today!</span>
+            </div>
+            <button class="m-bell" id="mBellBtn" title="今天">✧</button>
+          </div>
+          <div class="m-calendar">
+            <div class="m-cal-head"><span id="mCalMonth">November</span><span class="m-cal-chev">⌄</span></div>
+            <div class="m-cal-days" id="mCalDays"></div>
+          </div>
+        </div>
         <div class="welcome-row">
           <div><div class="eyebrow">WEDNESDAY, YOUR DAY STARTS HERE</div><h1>把今天，安排得刚刚好。<span class="wave">✦</span></h1><p class="muted">早上好，<span id="greetName">dear student</span>。先看看今天有什么值得完成。</p></div>
           <button class="primary-button" data-goto="planner"><span>✧</span> 生成今日计划</button>
@@ -323,7 +337,7 @@
     </div>
   </form></dialog>
   <dialog id="courseDialog"><form method="dialog" id="courseForm" class="dialog-form"><div class="dialog-head"><div><h2 id="courseDialogTitle">添加课程</h2><p>填写课程基本信息</p></div><button type="button" class="close-dialog" data-close="self" title="关闭">×</button></div><label>课程名称</label><input class="field" id="courseName" required placeholder="例如：大学物理"/><div class="form-two"><div><label>星期</label><select class="field" id="courseDay"><option value="1">周一</option><option value="2">周二</option><option value="3">周三</option><option value="4">周四</option><option value="5">周五</option></select></div><div><label>地点</label><input class="field" id="courseRoom" placeholder="教学楼 2-101"/></div></div><div class="form-two"><div><label>开始时间</label><input class="field" type="time" id="courseStart" value="10:00"/></div><div><label>结束时间</label><input class="field" type="time" id="courseEnd" value="11:40"/></div></div><button class="primary-button full-button" value="default">保存课程</button></form></dialog>
-  <script src="i18n.js?v=20261119s"></script>
-  <script src="app.js?v=20261119s"></script>
+  <script src="i18n.js?v=20261119t"></script>
+  <script src="app.js?v=20261119t"></script>
 </body>
 </html>
