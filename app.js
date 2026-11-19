@@ -225,6 +225,8 @@ function openTaskDialog(id) {
   $("#taskDuration").value = t ? t.duration : 60;
   $("#taskPriority").value = t ? t.priority : "中";
   $("#taskCategory").value = t ? t.category : "学习";
+  const nb = t ? (t.notBefore || "") : "";
+  $("#taskNotBefore").value = nb ? String(nb).replace(" ", "T").slice(0, 16) : "";
   dlg.showModal();
 }
 
@@ -659,12 +661,14 @@ $("#taskForm")?.addEventListener("submit", e => {
   e.preventDefault();
   const title = $("#taskTitle").value.trim();
   if (!title) { toast("请填写任务名称"); return; }
+  const nbRaw = $("#taskNotBefore").value;
   const data = {
     title,
     deadline: $("#taskDeadline").value,
     duration: Math.max(5, Number($("#taskDuration").value) || 60),
     priority: $("#taskPriority").value,
-    category: $("#taskCategory").value
+    category: $("#taskCategory").value,
+    notBefore: nbRaw ? nbRaw.replace("T", " ").slice(0, 16) : ""
   };
   if (editingTaskId) {
     const t = tasks.find(x => x.id === editingTaskId);
@@ -680,6 +684,13 @@ $("#taskForm")?.addEventListener("submit", e => {
 });
 
 $("#cancelTask")?.addEventListener("click", () => $("#taskDialog").close());
+
+$("#taskTitle")?.addEventListener("input", e => {
+  const box = $("#taskNotBefore");
+  if (!box || box.value) return;              // 已手动填过就不覆盖
+  const guess = inferNotBefore(e.target.value, $("#taskDeadline").value || todayISO());
+  if (guess) box.value = guess.replace(" ", "T").slice(0, 16);
+});
 
 /* AI 识别（本地模拟，保留原逻辑） */
 function mockParse(text) {
@@ -725,8 +736,18 @@ $("#parseTaskBtn")?.addEventListener("click", async () => {
 
   const p = $("#parsePreview");
   p.classList.remove("hidden");
+  const constrained = parsedDraft.filter(t => t.notBefore);
+  const tip = $("#constraintTip");
+  if (tip) {
+    if (constrained.length) {
+      tip.classList.remove("hidden");
+      tip.innerHTML = `<span class="ct-icon">⏰</span><div>已识别到时间约束：<strong>不早于 ${constrained.map(t => String(t.notBefore).slice(11)).join("、")}</strong> —— 生成计划时会自动排在对应课程之后，不会再出现在课程之前。</div>`;
+    } else {
+      tip.classList.add("hidden");
+    }
+  }
   p.innerHTML = `<strong style="font-size:11px;color:#6875aa">✧ 识别结果预览（${source}）</strong>
-    ${parsedDraft.map(t => `<div class="preview-task"><span>${escapeHtml(t.title)}</span><small>${fmtCN(t.deadline)} · ${t.duration} 分钟 · ${t.priority}优先级</small></div>`).join("")}
+    ${parsedDraft.map(t => `<div class="preview-task"><span>${escapeHtml(t.title)}${t.notBefore ? `<span class="preview-constraint">不早于 ${String(t.notBefore).slice(11)}</span>` : ""}</span><small>${fmtCN(t.deadline)} · ${t.duration} 分钟 · ${t.priority}优先级</small></div>`).join("")}
     <div class="preview-actions"><button class="secondary-button" id="cancelDraft">取消</button><button class="primary-button" id="confirmDraft">确认加入任务</button></div>`;
   $("#cancelDraft").onclick = () => p.classList.add("hidden");
   $("#confirmDraft").onclick = () => {
@@ -1940,7 +1961,7 @@ document.querySelectorAll("dialog").forEach(dlg => {
   try { LEGACY_KEYS.forEach(k => localStorage.removeItem(k)); } catch (e) {}
 })();
 
-const APP_VERSION = "2026-11-19 #k";
+const APP_VERSION = "2026-11-19 #m";
 (function stampVersion() {
   const f = $("#appFooter");
   if (f && !f.dataset.stamped) {
